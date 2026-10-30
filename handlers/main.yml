@@ -1,0 +1,20 @@
+---
+
+# handlers file for Windows-2025-STIG
+#
+# The handler raises the change_requires_reboot flag rather than rebooting directly.
+# tasks/post.yml then performs the reboot, or warns instead when skip_reboot is set.
+# Rebooting from the handler would bypass skip_reboot entirely.
+
+- name: Change_requires_reboot
+  ansible.builtin.set_fact:
+    change_requires_reboot: true
+
+# OpenSSH picks up sshd_config only on service restart, so every SH control that edits the
+# file notifies this. It is a restart rather than a reload because Windows OpenSSH has no
+# reload verb.
+- name: Restart_sshd
+  when: not win25stig_skip_sshd_restart
+  ansible.windows.win_service:
+    name: sshd
+    state: restarted

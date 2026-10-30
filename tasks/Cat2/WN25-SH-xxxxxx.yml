@@ -1,0 +1,276 @@
+---
+
+# The SH band is new in the Windows Server 2025 STIG and hardens Windows OpenSSH.
+#
+# WN25-SH-000010 is the only control that installs anything. It adds a listening network
+# service, so it is gated on win25stig_install_openssh, which defaults to false. The other ten
+# controls harden an OpenSSH that is already present and are gated on prelim_openssh_configured,
+# so they no-op on a host where OpenSSH has never generated a sshd_config rather than failing.
+#
+# Config edits notify Restart_sshd, because Windows OpenSSH reads sshd_config only at start.
+
+- name: "MEDIUM | WN25-SH-000010 | PATCH | Windows Server 2025 networked systems must have and implement OpenSSH to protect the confidentiality and integrity of transmitted and received information, as well as information during preparation for transmission."
+  when:
+    - wn25_sh_000010 | bool
+    - win25stig_install_openssh | bool
+  tags:
+    - WN25-SH-000010
+    - CAT2
+    - CCI-002418
+    - CCI-002421
+    - CCI-002422
+    - SRG-OS-000423-GPOS-00187
+    - SV-285313r1211167_rule
+    - V-285313
+    - ssh
+    - NIST800-53_SC-8
+    - NIST800-53_A_SC-8_1
+    - NIST800-53_4_SC-8
+  block:
+    - name: "MEDIUM | WN25-SH-000010 | AUDIT | Windows Server 2025 networked systems must have and implement OpenSSH. | Get OpenSSH Capability State."
+      ansible.windows.win_shell: (Get-WindowsCapability -Online -Name OpenSSH.Server*).State
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_sh_000010_audit
+
+    - name: "MEDIUM | WN25-SH-000010 | PATCH | Windows Server 2025 networked systems must have and implement OpenSSH. | Install OpenSSH Server."
+      when: "'Installed' not in discovered_sh_000010_audit.stdout | default('', true)"
+      ansible.windows.win_shell: Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
+
+    - name: "MEDIUM | WN25-SH-000010 | PATCH | Windows Server 2025 networked systems must have and implement OpenSSH. | Enable And Start sshd."
+      ansible.windows.win_service:
+        name: sshd
+        state: started
+        start_mode: auto
+
+    # Starting sshd is what generates sshd_config and the host keys, so re-stat and refresh the
+    # fact. Without this the ten hardening controls below would still see the pre-install value
+    # and skip, leaving a listening sshd on stock configuration.
+    - name: "MEDIUM | WN25-SH-000010 | AUDIT | Windows Server 2025 networked systems must have and implement OpenSSH. | Re-check Configuration After Install."
+      ansible.windows.win_stat:
+        path: "{{ win25stig_sshd_config_path }}"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_sh_000010_config_stat
+
+    - name: "MEDIUM | WN25-SH-000010 | AUDIT | Windows Server 2025 networked systems must have and implement OpenSSH. | Refresh OpenSSH Facts."
+      ansible.builtin.set_fact:
+        prelim_openssh_installed: true
+        prelim_openssh_configured: "{{ discovered_sh_000010_config_stat.stat.exists | default(false, true) }}"
+
+- name: "MEDIUM | WN25-SH-000020 | PATCH | Windows Server 2025 OpenSSH must display the Standard Mandatory DOD Notice and Consent Banner before granting remote access to the system via an OpenSSH logon."
+  when:
+    - wn25_sh_000020 | bool
+    - prelim_openssh_configured
+  tags:
+    - WN25-SH-000020
+    - CAT2
+    - CCI-000048
+    - CCI-001384
+    - CCI-001385
+    - CCI-001386
+    - CCI-001387
+    - CCI-001388
+    - SRG-OS-000023-GPOS-00006
+    - SV-285314r1211170_rule
+    - V-285314
+    - ssh
+    - NIST800-53_AC-8_a
+    - NIST800-53_A_AC-8_1
+    - NIST800-53_4_AC-8_a
+  block:
+    - name: "MEDIUM | WN25-SH-000020 | PATCH | Windows Server 2025 OpenSSH must display the Standard Mandatory DOD Notice and Consent Banner. | Deploy Banner File."
+      ansible.windows.win_template:
+        src: ssh_banner.txt.j2
+        dest: "{{ win25stig_ssh_banner_path }}"
+      notify: Restart_sshd
+
+# sshd_config is rendered whole rather than edited directive by directive, so its end state is
+# deterministic and a directive appearing inside a Match block cannot be edited by mistake. That
+# makes one write cover six CAT II controls, hence the six identifiers on this task.
+# WN25-SH-000040 is CAT I and deploys the same template from tasks/Cat1 so that a --tags CAT1 run
+# still hardens the file; every directive is gated on its own toggle, so both renders agree.
+- name: "MEDIUM | WN25-SH-000020, 000030, 000050, 000060, 000070, 000110 | PATCH | The Windows Server 2025 OpenSSH daemon configuration must conform to the benchmark. | Deploy sshd_config."
+  when:
+    - (wn25_sh_000020 or wn25_sh_000030 or wn25_sh_000050 or wn25_sh_000060 or wn25_sh_000070 or wn25_sh_000110) | bool
+    - prelim_openssh_configured
+  tags:
+    - WN25-SH-000020
+    - WN25-SH-000030
+    - WN25-SH-000050
+    - WN25-SH-000060
+    - WN25-SH-000070
+    - WN25-SH-000110
+    - CAT2
+    - CCI-000048
+    - CCI-000068
+    - CCI-000765
+    - CCI-000766
+    - CCI-000767
+    - CCI-000768
+    - CCI-001133
+    - CCI-001384
+    - CCI-001385
+    - CCI-001386
+    - CCI-001387
+    - CCI-001388
+    - CCI-001813
+    - CCI-002361
+    - CCI-002418
+    - CCI-002421
+    - CCI-002891
+    - SRG-OS-000023-GPOS-00006
+    - SRG-OS-000105-GPOS-00052
+    - SRG-OS-000126-GPOS-00066
+    - SRG-OS-000163-GPOS-00072
+    - SRG-OS-000364-GPOS-00151
+    - SRG-OS-000423-GPOS-00187
+    - SV-285314r1211170_rule
+    - SV-285315r1211173_rule
+    - SV-285317r1211179_rule
+    - SV-285318r1211182_rule
+    - SV-285319r1212174_rule
+    - SV-285323r1211197_rule
+    - V-285314
+    - V-285315
+    - V-285317
+    - V-285318
+    - V-285319
+    - V-285323
+    - ssh
+  ansible.windows.win_template:
+    src: sshd_config.j2
+    dest: "{{ win25stig_sshd_config_path }}"
+  notify: Restart_sshd
+
+# WN25-SH-000080 / 000090 / 000100 are permission controls. Inheritance is disabled with
+# reorganize: false, which DISCARDS the inherited ACEs. reorganize: true would copy them down as
+# explicit ACEs, so an inherited BUILTIN\Users:(RX) would become a permanent explicit entry on the
+# private host keys - the opposite of what these controls require.
+- name: "MEDIUM | WN25-SH-000080 | PATCH | The Windows Server 2025 OpenSSH configuration file must conform to minimum requirements."
+  when:
+    - wn25_sh_000080 | bool
+    - prelim_openssh_configured
+  tags:
+    - WN25-SH-000080
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-285320r1212175_rule
+    - V-285320
+    - ssh
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  block:
+    - name: "MEDIUM | WN25-SH-000080 | PATCH | The Windows Server 2025 OpenSSH configuration file must conform to minimum requirements. | Disable Inheritance."
+      ansible.windows.win_acl_inheritance:
+        path: "{{ win25stig_sshd_config_path }}"
+        state: absent
+        reorganize: false
+
+    - name: "MEDIUM | WN25-SH-000080 | PATCH | The Windows Server 2025 OpenSSH configuration file must conform to minimum requirements. | Apply Required ACEs."
+      ansible.windows.win_acl:
+        path: "{{ win25stig_sshd_config_path }}"
+        user: "{{ item.user }}"
+        rights: "{{ item.rights }}"
+        type: allow
+        state: present
+      loop:
+        - {user: 'NT AUTHORITY\SYSTEM', rights: FullControl}
+        - {user: 'BUILTIN\Administrators', rights: FullControl}
+        - {user: 'NT AUTHORITY\Authenticated Users', rights: ReadAndExecute}
+
+- name: "MEDIUM | WN25-SH-000090 | PATCH | Windows Server 2025 OpenSSH private host key files must conform to minimum requirements."
+  when:
+    - wn25_sh_000090 | bool
+    - prelim_openssh_configured
+  tags:
+    - WN25-SH-000090
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-285321r1211191_rule
+    - V-285321
+    - ssh
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  block:
+    - name: "MEDIUM | WN25-SH-000090 | AUDIT | Windows Server 2025 OpenSSH private host key files must conform to minimum requirements. | Find Private Host Keys."
+      ansible.windows.win_find:
+        paths: "{{ win25stig_ssh_data_dir }}"
+        patterns: 'ssh_host_*_key'
+        use_regex: false
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_sh_000090_audit
+
+    - name: "MEDIUM | WN25-SH-000090 | PATCH | Windows Server 2025 OpenSSH private host key files must conform to minimum requirements. | Disable Inheritance."
+      ansible.windows.win_acl_inheritance:
+        path: "{{ item.path }}"
+        state: absent
+        reorganize: false
+      loop: "{{ discovered_sh_000090_audit.files | default([], true) }}"
+      loop_control:
+        label: "{{ item.path }}"
+
+    - name: "MEDIUM | WN25-SH-000090 | PATCH | Windows Server 2025 OpenSSH private host key files must conform to minimum requirements. | Apply Required ACEs."
+      ansible.windows.win_acl:
+        path: "{{ item.0.path }}"
+        user: "{{ item.1 }}"
+        rights: FullControl
+        type: allow
+        state: present
+      loop: "{{ discovered_sh_000090_audit.files | default([], true) | product(['BUILTIN\\Administrators', 'NT AUTHORITY\\SYSTEM']) | list }}"
+      loop_control:
+        label: "{{ item.0.path }} -> {{ item.1 }}"
+
+- name: "MEDIUM | WN25-SH-000100 | PATCH | Windows Server 2025 OpenSSH public host key files must conform to minimum requirements."
+  when:
+    - wn25_sh_000100 | bool
+    - prelim_openssh_configured
+  tags:
+    - WN25-SH-000100
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-285322r1211194_rule
+    - V-285322
+    - ssh
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  block:
+    - name: "MEDIUM | WN25-SH-000100 | AUDIT | Windows Server 2025 OpenSSH public host key files must conform to minimum requirements. | Find Public Host Keys."
+      ansible.windows.win_find:
+        paths: "{{ win25stig_ssh_data_dir }}"
+        patterns: 'ssh_host_*_key.pub'
+        use_regex: false
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_sh_000100_audit
+
+    - name: "MEDIUM | WN25-SH-000100 | PATCH | Windows Server 2025 OpenSSH public host key files must conform to minimum requirements. | Disable Inheritance."
+      ansible.windows.win_acl_inheritance:
+        path: "{{ item.path }}"
+        state: absent
+        reorganize: false
+      loop: "{{ discovered_sh_000100_audit.files | default([], true) }}"
+      loop_control:
+        label: "{{ item.path }}"
+
+    - name: "MEDIUM | WN25-SH-000100 | PATCH | Windows Server 2025 OpenSSH public host key files must conform to minimum requirements. | Apply Required ACEs."
+      ansible.windows.win_acl:
+        path: "{{ item.0.path }}"
+        user: "{{ item.1 }}"
+        rights: FullControl
+        type: allow
+        state: present
+      loop: "{{ discovered_sh_000100_audit.files | default([], true) | product(['BUILTIN\\Administrators', 'NT AUTHORITY\\SYSTEM']) | list }}"
+      loop_control:
+        label: "{{ item.0.path }} -> {{ item.1 }}"

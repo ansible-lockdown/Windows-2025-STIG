@@ -1,0 +1,1482 @@
+---
+
+- name: "MEDIUM | WN25-00-000001 | AUDIT | Windows Server 2025 must install security-relevant software updates within 30 days unless the time period is directed by an authoritative source (e.g., IAVM, CTOs, DTMs, STIGs)."
+  when: wn25_00_000001 | bool
+  tags:
+    - WN25-00-000001
+    - CAT2
+    - CCI-002605
+    - SRG-OS-000439-GPOS-00195
+    - SV-277982r1181944_rule
+    - V-277982
+  vars:
+    warn_control_id: "WN25-00-000001"
+  block:
+    - name: "MEDIUM | WN25-00-000001 | AUDIT | Windows Server 2025 must install security-relevant software updates within 30 days unless the time period is directed by an authoritative source (e.g., IAVM, CTOs, DTMs, STIGs)."
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This is a manual task. Security-relevant software updates must be installed within 30 days,"
+          - "or within the period directed by the authoritative source (IAVM, CTO, DTM or STIG)."
+          - "Configure the system to use a patch management system that meets that requirement."
+
+    - name: "MEDIUM | WN25-00-000001 | AUDIT | Windows Server 2025 must install security-relevant software updates within 30 days unless the time period is directed by an authoritative source (e.g., IAVM, CTOs, DTMs, STIGs). | Warn Count."
+      ansible.builtin.import_tasks:
+        file: warning_facts.yml
+
+- name: "MEDIUM | WN25-00-000002 | AUDIT | Windows Server 2025 must prohibit the use or connection of unauthorized hardware components."
+  when: wn25_00_000002 | bool
+  tags:
+    - WN25-00-000002
+    - CAT2
+    - CCI-003959
+    - SRG-OS-000690-GPOS-00140
+    - SV-277983r1180655_rule
+    - V-277983
+  vars:
+    warn_control_id: "WN25-00-000002"
+  block:
+    - name: "MEDIUM | WN25-00-000002 | AUDIT | Windows Server 2025 must prohibit the use or connection of unauthorized hardware components."
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This is a manual task. The use or connection of unauthorized hardware components must be prohibited."
+          - "Remove any hardware that is not documented or not approved by the ISSO or ISSM."
+
+    - name: "MEDIUM | WN25-00-000002 | AUDIT | Windows Server 2025 must prohibit the use or connection of unauthorized hardware components. | Warn Count."
+      ansible.builtin.import_tasks:
+        file: warning_facts.yml
+
+- name: "MEDIUM | WN25-00-000010 | AUDIT | Windows Server 2025 users with administrative privileges must have separate accounts for administrative duties and normal operational tasks."
+  when: wn25_00_000010 | bool
+  tags:
+    - WN25-00-000010
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-277985r1182240_rule
+    - V-277985
+    - audit
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  block:
+    - name: "MEDIUM | WN25-00-000010 | AUDIT | Windows Server 2025 users with administrative privileges must have separate accounts for administrative duties and normal operational tasks. | Message out"
+      ansible.builtin.debug:
+        msg: "Warning!! This is a manual task.  Windows Server 2025 users with administrative privileges must have separate accounts for administrative duties and normal operational tasks."
+
+    - name: "MEDIUM | WN25-00-000010 | AUDIT | Windows Server 2025 users with administrative privileges must have separate accounts for administrative duties and normal operational tasks. | Warn Count."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000010"
+
+- name: "MEDIUM | WN25-00-000020 | AUDIT | Windows Server 2025 passwords for the built-in Administrator account must be changed at least every 60 days."
+  when: wn25_00_000020 | bool
+  tags:
+    - WN25-00-000020
+    - CAT2
+    - CCI-004066
+    - SRG-OS-000076-GPOS-00044
+    - SV-277986r1182007_rule
+    - V-277986
+    - audit
+    - NIST800-53_IA-5_1_d
+    - NIST800-53A_IA-5_1_d
+    - NIST800-53A_4_IA-5_1_d
+  block:
+    - name: "MEDIUM | WN25-00-000020 | AUDIT - DOMAIN CONTROLLER | Windows Server 2025 passwords for the built-in Administrator account must be changed at least every 60 days."
+      when: "'controller' in ansible_facts['windows_domain_role']"
+      ansible.windows.win_shell: "Get-ADUser -Filter * -Property PasswordLastSet | Where SID -like S-1-5-21-*-500 | Where-Object {$_.PasswordLastSet -lt ((Get-Date).AddDays(-{{ win25stig_pass_age_administrator }}))} | Select Name,PasswordLastSet"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_00_000020_audit_dc
+
+    - name: "MEDIUM | WN25-00-000020 | AUDIT - DOMAIN CONTROLLER | Windows Server 2025 passwords for the built-in Administrator account must be changed at least every 60 days."
+      when:
+        - discovered_00_000020_audit_dc is not skipped
+        - discovered_00_000020_audit_dc.stdout != ""
+      ansible.builtin.debug:
+        msg:
+          - "The following account appears to be the default admin account and the password does not meet the control specific age of {{ win25stig_pass_age_administrator }}"
+          - "{{ discovered_00_000020_audit_dc.stdout.split('\n') }}"
+
+    - name: "MEDIUM | WN25-00-000020 | AUDIT - DOMAIN MEMBERS OR STANDALONE | Windows Server 2025 passwords for the built-in Administrator account must be changed at least every 60 days."
+      when: "'controller' not in ansible_facts['windows_domain_role']"
+      ansible.windows.win_shell: "Get-Localuser -Name * | Select * | Where SID -like S-1-5-21-*-500 | Where-Object {$_.PasswordLastSet -lt ((Get-Date).AddDays(-{{ win25stig_pass_age_administrator }}))} | Select Name,PasswordLastSet"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_00_000020_audit_dm_sa
+
+    - name: "MEDIUM | WN25-00-000020 | AUDIT - DOMAIN MEMBERS OR STANDALONE | Windows Server 2025 passwords for the built-in Administrator account must be changed at least every 60 days."
+      when:
+        - discovered_00_000020_audit_dm_sa is not skipped
+        - discovered_00_000020_audit_dm_sa.stdout != ""
+      ansible.builtin.debug:
+        msg:
+          - "The following account appears to be the default admin account and the password does not meet the control specific age of {{ win25stig_pass_age_administrator }}"
+          - "{{ discovered_00_000020_audit_dm_sa.stdout.split('\n') }}"
+
+    - name: "MEDIUM | WN25-00-000020 | AUDIT | Windows Server 2025 passwords for the built-in Administrator account must be changed at least every 60 days. | Warn Count."
+      when: discovered_00_000020_audit_dc is not skipped and discovered_00_000020_audit_dc.stdout != "" or discovered_00_000020_audit_dm_sa is not skipped and discovered_00_000020_audit_dm_sa.stdout != ""
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000020"
+- name: "MEDIUM | WN25-00-000040 | AUDIT | Windows Server 2025 members of the Backup Operators group must have separate accounts for backup duties and normal operational tasks."
+  when:
+    - wn25_00_000040 | bool
+    - "'controller' not in ansible_facts['windows_domain_role']"
+  tags:
+    - WN25-00-000040
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-277988r1182011_rule
+    - V-277988
+    - audit
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  block:
+    - name: "MEDIUM | WN25-00-000040 | AUDIT - STAND-ALONE AND MEMBER SERVERS | Windows Server 2025 members of the Backup Operators group must have separate accounts for backup duties and normal operational tasks."
+      ansible.windows.win_shell: Get-LocalGroupMember -Name 'Backup Operators'
+      changed_when: false
+      check_mode: false
+      register: discovered_00_000040_audit
+
+    - name: "MEDIUM | WN25-00-000040 | AUDIT - STAND-ALONE AND MEMBER SERVERS | Windows Server 2025 members of the Backup Operators group must have separate accounts for backup duties and normal operational tasks."
+      when:
+        - not discovered_00_000040_audit is skipped
+        - discovered_00_000040_audit.stdout != ""
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This is a manual task. The accounts listed are members of the Backup Operators group."
+          - "Please verify these accounts have separate accounts for backup duties and normal operational tasks."
+          - "{{ discovered_00_000040_audit.stdout.split('\n') }}"
+      changed_when: false
+
+    - name: "MEDIUM | WN25-00-000040 | AUDIT - STAND-ALONE AND MEMBER SERVERS | Windows Server 2025 members of the Backup Operators group must have separate accounts for backup duties and normal operational tasks. | Warn Count."
+      when:
+        - not discovered_00_000040_audit is skipped
+        - discovered_00_000040_audit.stdout != ""
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000040"
+
+- name: "MEDIUM | WN25-00-000050 | AUDIT | Windows Server 2025 manually managed application account passwords must be at least 15 characters in length."
+  when: wn25_00_000050 | bool
+  tags:
+    - WN25-00-000050
+    - CAT2
+    - CCI-004066
+    - SRG-OS-000078-GPOS-00046
+    - SV-277989r1181947_rule
+    - V-277989
+    - NIST800-53_IA-5_1_a
+    - NIST800-53A_IA-5_1_1_i
+    - NIST800-53A_4_IA-5_1_a
+  block:
+    - name: "MEDIUM | WN25-00-000050 | AUDIT | Windows Server 2025 manually managed application account passwords must be at least 15 characters in length. | Message out"
+      ansible.builtin.debug:
+        msg: "Warning!! This is a manual task. Windows Server 2025 manually managed application account passwords must be at least 15 characters in length."
+
+    - name: "MEDIUM | WN25-00-000050 | AUDIT | Windows Server 2025 manually managed application account passwords must be at least 15 characters in length. | Warn Count."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000050"
+
+- name: "MEDIUM | WN25-00-000060 | AUDIT | Windows Server 2025 manually managed application account passwords must be changed at least annually or when a system administrator with knowledge of the password leaves the organization."
+  when: wn25_00_000060 | bool
+  tags:
+    - WN25-00-000060
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-277990r1182248_rule
+    - V-277990
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  block:
+    - name: "MEDIUM | WN25-00-000060 | AUDIT | Windows Server 2025 manually managed application account passwords must be changed at least annually or when a system administrator with knowledge of the password leaves the organization. | Message out"
+      ansible.builtin.debug:
+        msg: "Warning!! This is a manual task. Windows Server 2025 manually managed application account passwords must be changed at least annually or when a system administrator with knowledge of the password leaves the organization."
+
+    - name: "MEDIUM | WN25-00-000060 | AUDIT | Windows Server 2025 manually managed application account passwords must be changed at least annually or when a system administrator with knowledge of the password leaves the organization. | import reusable task."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000060"
+
+- name: "MEDIUM | WN25-00-000070 | AUDIT | Windows Server 2025 shared user accounts must not be permitted."
+  when: wn25_00_000070 | bool
+  tags:
+    - WN25-00-000070
+    - CAT2
+    - CCI-000764
+    - SRG-OS-000104-GPOS-00051
+    - SV-277991r1181778_rule
+    - V-277991
+    - NIST800-53_IA-2
+    - NIST800-53_A_IA-5_2_1
+    - NIST800-53_4_IA-2
+  block:
+    - name: "MEDIUM | WN25-00-000070 | AUDIT | Windows Server 2025 shared user accounts must not be permitted. | Message out"
+      ansible.builtin.debug:
+        msg: "Warning!! This is a manual task. Windows Server 2025 shared user accounts must not be permitted."
+
+    - name: "MEDIUM | WN25-00-000070 | AUDIT | Windows Server 2025 shared user accounts must not be permitted. | import reusable task."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000070"
+
+- name: "MEDIUM | WN25-00-000080 | AUDIT | Windows Server 2025 must employ a deny-all, permit-by-exception policy to allow the execution of authorized software programs."
+  when: wn25_00_000080 | bool
+  tags:
+    - WN25-00-000080
+    - CAT2
+    - CCI-001774
+    - SRG-OS-000370-GPOS-00155
+    - SV-277992r1182016_rule
+    - V-277992
+    - NIST800-53_4_CM-7_5_b
+  block:
+    - name: "MEDIUM | WN25-00-000080 | AUDIT | Windows Server 2025 must employ a deny-all, permit-by-exception policy to allow the execution of authorized software programs. | Message out"
+      ansible.builtin.debug:
+        msg: "Warning!! This is a manual task. Windows Server 2025 must employ a deny-all, permit-by-exception policy to allow the execution of authorized software programs."
+
+    - name: "MEDIUM | WN25-00-000080 | AUDIT | Windows Server 2025 must employ a deny-all, permit-by-exception policy to allow the execution of authorized software programs. | import reusable task."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000080"
+
+- name: "MEDIUM | WN25-00-000090 | AUDIT | Windows Server 2025 systems must have a Trusted Platform Module (TPM) enabled and ready for use."
+  when: wn25_00_000090 | bool
+  tags:
+    - WN25-00-000090
+    - CAT2
+    - CCI-004910
+    - SRG-OS-000780-GPOS-00240
+    - SV-277993r1212171_rule
+    - V-277993
+    - NIST800-53_4_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+  block:
+    # wmic was removed in Windows Server 2025, so this uses CIM. The old wmic call left the
+    # register without stdout/stderr keys and every downstream conditional then raised
+    # "dict object has no attribute stderr_lines".
+    - name: "MEDIUM | WN25-00-000090 | AUDIT | Windows Server 2025 systems must have a Trusted Platform Module (TPM) enabled and ready for use. | Get TPM Settings"
+      ansible.windows.win_shell: |
+        $tpm = Get-CimInstance -Namespace root\cimv2\security\microsofttpm -ClassName Win32_Tpm -ErrorAction SilentlyContinue
+        if ($null -eq $tpm) { "No Instance" }
+        else { "IsActivated=$($tpm.IsActivated_InitialValue) IsEnabled=$($tpm.IsEnabled_InitialValue) IsOwned=$($tpm.IsOwned_InitialValue) SpecVersion=$($tpm.SpecVersion)" }
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_00_000090_tpm_status
+
+    - name: "MEDIUM | WN25-00-000090 | AUDIT | Windows Server 2025 systems must have a Trusted Platform Module (TPM) enabled and ready for use. | Running Instances Check."
+      when: "'No Instance' in discovered_00_000090_tpm_status.stdout | default('', true)"
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! Please confirm TPM status is Ready for use, there are no instances currently running."
+
+    - name: "MEDIUM | WN25-00-000090 | AUDIT | Windows Server 2025 systems must have a Trusted Platform Module (TPM) enabled and ready for use. | Full TPM Check."
+      when:
+        - "'No Instance' not in discovered_00_000090_tpm_status.stdout | default('', true)"
+        - "'IsActivated=True' not in discovered_00_000090_tpm_status.stdout | default('', true) or
+           'IsEnabled=True' not in discovered_00_000090_tpm_status.stdout | default('', true) or
+           'IsOwned=True' not in discovered_00_000090_tpm_status.stdout | default('', true)"
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! Please confirm TPM status is Ready for use. Current settings do not meet STIG requirements."
+          - "{{ discovered_00_000090_tpm_status.stdout | default('', true) | trim }}"
+
+    - name: "MEDIUM | WN25-00-000090 | AUDIT | Windows Server 2025 systems must have a Trusted Platform Module (TPM) enabled and ready for use. | Warning Count"
+      when: "'No Instance' in discovered_00_000090_tpm_status.stdout | default('', true) or
+             'IsActivated=True' not in discovered_00_000090_tpm_status.stdout | default('', true) or
+             'IsEnabled=True' not in discovered_00_000090_tpm_status.stdout | default('', true) or
+             'IsOwned=True' not in discovered_00_000090_tpm_status.stdout | default('', true)"
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000090"
+- name: "MEDIUM | WN25-00-000110 | AUDIT | Windows Server 2025 must use an antivirus program."
+  when: wn25_00_000110 | bool
+  tags:
+    - WN25-00-000110
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-277995r1180691_rule
+    - V-277995
+    - NIST800-53_4_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+  block:
+    - name: "MEDIUM | WN25-00-000110 | AUDIT | Windows Server 2025 must use an antivirus program. | Message out"
+      ansible.builtin.debug:
+        msg: "Warning!! This is a manual task. Windows Server 2025 must use an antivirus program."
+
+    - name: "MEDIUM | WN25-00-000110 | AUDIT | Windows Server 2025 must use an antivirus program. | import reusable task."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000110"
+
+- name: "MEDIUM | WN25-00-000120 | AUDIT | Windows Server 2025 must have a host-based intrusion detection or prevention system."
+  when: wn25_00_000120 | bool
+  tags:
+    - WN25-00-000120
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-277996r1182235_rule
+    - V-277996
+    - NIST800-53_4_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+  block:
+    - name: "MEDIUM | WN25-00-000120 | AUDIT | Windows Server 2025 must have a host-based intrusion detection or prevention system. | Message out"
+      ansible.builtin.debug:
+        msg: "Warning!! This is a manual task. Windows Server 2025 must have a host-based intrusion detection or prevention system."
+
+    - name: "MEDIUM | WN25-00-000120 | AUDIT | Windows Server 2025 must have a host-based intrusion detection or prevention system. | import reusable task."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000120"
+
+- name: "MEDIUM | WN25-00-000140 | AUDIT | Windows Server 2025 permissions for the system drive root directory usually C:\ must conform to minimum requirements."
+  when: wn25_00_000140 | bool
+  tags:
+    - WN25-00-000140
+    - CAT2
+    - CCI-002165
+    - SRG-OS-000312-GPOS-00122
+    - SV-277998r1180700_rule
+    - V-277998
+    - NIST800-53_4_AC-3_4
+  block:
+    - name: "MEDIUM | WN25-00-000140 | AUDIT | Windows Server 2025 permissions for the system drive root directory usually C:\ must conform to minimum requirements. | Message out"
+      ansible.builtin.debug:
+        msg: "Warning!! This is a manual task. Windows Server 2025 permissions for the system drive root directory usually C:\ must conform to minimum requirements."
+
+    - name: "MEDIUM | WN25-00-000140 | AUDIT | Windows Server 2025 permissions for the system drive root directory usually C:\ must conform to minimum requirements. | import reusable task."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000140"
+
+- name: "MEDIUM | WN25-00-000150 | AUDIT | Windows Server 2025 permissions for program file directories must conform to minimum requirements."
+  when: wn25_00_000150 | bool
+  tags:
+    - WN25-00-000150
+    - CAT2
+    - CCI-002165
+    - SRG-OS-000312-GPOS-00122
+    - SV-277999r1180703_rule
+    - V-277999
+    - audit
+    - NIST800-53_4_AC-3_4
+  block:
+    - name: "MEDIUM | WN25-00-000150 | AUDIT | Permissions for program file directories must conform to minimum requirements. | Obtain icacls for Program Files."
+      ansible.windows.win_shell: icacls "c:\Program Files"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_00_000150_program_files_audit
+
+    - name: "MEDIUM | WN25-00-000150 | AUDIT | Permissions for program file directories must conform to minimum requirements. | Manual Audit icacls for Program Files."
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This is a manual task to audit. Windows Server 2025 icacls program needs to meet"
+          - "the STIG requirements. Please check the report below and compare the STIG requirements."
+          - "{{ discovered_00_000150_program_files_audit.stdout_lines }}"
+
+    - name: "MEDIUM | WN25-00-000150 | AUDIT | Permissions for program file directories must conform to minimum requirements. | Obtain icacls for Program Files x86"
+      ansible.windows.win_shell: icacls "c:\Program Files (x86)"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_00_000150_program_files_86_audit
+
+    - name: "MEDIUM | WN25-00-000150 | AUDIT | Permissions for program file directories must conform to minimum requirements. | Manual Audit icacls for Program Files x86."
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This is a manual task to audit. Windows Server 2025 icacls program files x86 needs to meet"
+          - "the STIG requirements. Please check the report below and compare the STIG requirements."
+          - "{{ discovered_00_000150_program_files_86_audit.stdout_lines }}"
+      vars:
+        warn_control_id: "WN25-00-000150"
+
+- name: "MEDIUM | WN25-00-000160 | AUDIT | Windows Server 2025 permissions for the Windows installation directory must conform to minimum requirements."
+  when: wn25_00_000160 | bool
+  tags:
+    - WN25-00-000160
+    - CAT2
+    - CCI-002165
+    - SRG-OS-000312-GPOS-00122
+    - SV-278000r1182252_rule
+    - V-278000
+    - audit
+    - NIST800-53_4_AC-3_4
+  block:
+    - name: "MEDIUM | WN25-00-000160 | AUDIT | Permissions for the Windows installation directory must conform to minimum requirements. | Obtain icacls for Windows Directory."
+      ansible.windows.win_shell: icacls "c:\windows"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_00_000160_windows_dir_audit
+
+    - name: "MEDIUM | WN25-00-000160 | AUDIT | Permissions for the Windows installation directory must conform to minimum requirements. | Warning Message."
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This is a manual task to audit. Windows Server 2025 permissions for the Windows installation directory needs to meet"
+          - "the STIG requirements. Please check the report below and compare the STIG requirements."
+          - "{{ discovered_00_000160_windows_dir_audit.stdout_lines }}"
+
+    - name: "MEDIUM | WN25-00-000160 | AUDIT | Permissions for the Windows installation directory must conform to minimum requirements. | Warn Count."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000160"
+
+- name: "MEDIUM | WN25-00-000170 | AUDIT | Windows Server 2025 default permissions for the HKEY_LOCAL_MACHINE registry hive must be maintained."
+  when: wn25_00_000170 | bool
+  tags:
+    - WN25-00-000170
+    - CAT2
+    - CCI-002235
+    - SRG-OS-000324-GPOS-00125
+    - SV-278001r1211143_rule
+    - V-278001
+    - NIST800-53_4_AC-3_4
+  block:
+    - name: "MEDIUM | WN25-00-000170 | AUDIT | Windows Server 2025 default permissions for the HKEY_LOCAL_MACHINE registry hive must be maintained. | Message out"
+      ansible.builtin.debug:
+        msg: "Warning!! This is a manual task. Windows Server 2025 default permissions for the HKEY_LOCAL_MACHINE registry hive must be maintained."
+
+    - name: "MEDIUM | WN25-00-000170 | AUDIT | Windows Server 2025 default permissions for the HKEY_LOCAL_MACHINE registry hive must be maintained. | import reusable task."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000170"
+
+- name: "MEDIUM | WN25-00-000190 | AUDIT | Windows Server 2025 outdated or unused accounts must be removed from the system or disabled."
+  when: wn25_00_000190 | bool
+  tags:
+    - WN25-00-000190
+    - CAT2
+    - CCI-003627
+    - CCI-003628
+    - SRG-OS-000118-GPOS-00060
+    - SV-278003r1182254_rule
+    - V-278003
+    - NIST800-53_IA-4_e
+    - NIST800-53A_IA-4_1_iii
+    - NIST800-53_4_IA-4_e
+  block:
+    - name: "MEDIUM | WN25-00-000190 | AUDIT - DOMAIN CONTROLLERS | Outdated or unused accounts must be removed from the system or disabled | Audit System."
+      ansible.windows.win_shell: Search-ADAccount -AccountInactive -UsersOnly -TimeSpan 35.00:00:00
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_00_000190_account_audit_dc
+      when: "'controller' in ansible_facts['windows_domain_role']"
+
+    - name: "MEDIUM | WN25-00-000190 | AUDIT - DOMAIN CONTROLLERS | Outdated or unused accounts must be removed from the system or disabled. | Warning Message."
+      when:
+        - discovered_00_000190_account_audit_dc is not skipped
+        - discovered_00_000190_account_audit_dc.stdout != ""
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This is a manual task. Outdated or unused accounts must be removed from"
+          - "the Windows Server 2025 system or disabled."
+          - "Accounts to exclude are the following:"
+          - "Built-in administrator account (Renamed, SID ending in 500)"
+          - "Built-in guest account (Renamed, Disabled, SID ending in 501)"
+          - "Built-in default account (Renamed, Disabled, SID ending in 503)"
+          - "Application accounts"
+          - "Below is the list of User accounts found on the system. Please check the report"
+          - "below and compare the STIG requirements."
+          - "----------------------------------------------------------"
+          - "{{ discovered_00_000190_account_audit_dc.stdout.split('\n') }}"
+          - "----------------------------------------------------------"
+
+    - name: "MEDIUM | WN25-00-000190 | AUDIT - DOMAIN MEMBERS OR STANDALONE | Outdated or unused accounts must be removed from the system or disabled. | Audit User Accounts"
+      when: "'controller' not in ansible_facts['windows_domain_role']"
+      ansible.windows.win_shell: |
+        ([ADSI]('WinNT://{0}' -f $env:COMPUTERNAME)).Children | Where {
+        $_.SchemaClassName -eq 'user' } | ForEach {
+        $user = ([ADSI]$_.Path)
+        $lastLogin = $user.Properties.LastLogin.Value
+        $enabled = ($user.Properties.UserFlags.Value -band 0x2) -ne 0x2
+        if ($lastLogin -eq $null) {
+        $lastLogin = 'Never'
+        }
+        Write-Host $user.Name $lastLogin $enabled
+        }
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_00_000190_account_audit_dm_sa
+
+    - name: "MEDIUM | WN25-00-000190 | AUDIT - DOMAIN MEMBERS OR STANDALONE | Outdated or unused accounts must be removed from the system or disabled. | Warning Message."
+      when:
+        - discovered_00_000190_account_audit_dm_sa is not skipped
+        - discovered_00_000190_account_audit_dm_sa.stdout != ""
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This is a manual task. Outdated or unused accounts must be removed from"
+          - "the Windows Server 2025 system or disabled."
+          - "Accounts to exclude are the following:"
+          - "Built-in administrator account (Renamed, SID ending in 500)"
+          - "Built-in guest account (Renamed, Disabled, SID ending in 501)"
+          - "Built-in default account (Renamed, Disabled, SID ending in 503)"
+          - "Application accounts"
+          - "Below is the list of User accounts found on the system. Please check the report"
+          - "below and compare the STIG requirements."
+          - "----------------------------------------------------------"
+          - "{{ discovered_00_000190_account_audit_dm_sa.stdout.split('\n') }}"
+          - "----------------------------------------------------------"
+
+    - name: "MEDIUM | WN25-00-000190 | AUDIT | Outdated or unused accounts must be removed from the system or disabled. | Warn Count"
+      when: discovered_00_000190_account_audit_dc is not skipped and discovered_00_000190_account_audit_dc.stdout != "" or discovered_00_000190_account_audit_dm_sa is not skipped and discovered_00_000190_account_audit_dm_sa.stdout != ""
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000190"
+
+- name: "MEDIUM | WN25-00-000200 | AUDIT | Windows Server 2025 accounts must require passwords."
+  when: wn25_00_000200 | bool
+  tags:
+    - WN25-00-000200
+    - CAT2
+    - CCI-000764
+    - SRG-OS-000104-GPOS-00051
+    - SV-278004r1182256_rule
+    - V-278004
+    - audit
+    - NIST800-53_IA-2
+    - NIST800-53_IA-2_1
+    - NIST800-53_4_IA-2
+  block:
+    - name: "MEDIUM | WN25-00-000200 | AUDIT - DOMAIN CONTROLLER | Windows Server 2025 accounts must require passwords."
+      when: "'controller' in ansible_facts['windows_domain_role']"
+      ansible.windows.win_shell: Get-Aduser -Filter "(Passwordnotrequired -eq 'True') -and (Enabled -eq 'True')" | Select Name,Passwordnotrequired,Enabled
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_00_000200_audit_dc
+
+    - name: "MEDIUM | WN25-00-000200 | AUDIT - DOMAIN CONTROLLER | Windows Server 2025 accounts must require passwords."
+      when:
+        - not discovered_00_000200_audit_dc is skipped
+        - discovered_00_000200_audit_dc.stdout != ""
+      ansible.builtin.debug:
+        msg:
+          - The accounts listed do not require a password and are currently enabled
+          - "{{ discovered_00_000200_audit_dc.stdout.split('\n') }}"
+
+    - name: "MEDIUM | WN25-00-000200 | AUDIT - DOMAIN MEMBERS OR STANDALONE | Windows Server 2025 accounts must require passwords."
+      when: "'controller' not in ansible_facts['windows_domain_role']"
+      ansible.windows.win_shell: Get-LocalUser | Where-Object {($_.PasswordRequired -ne 'True' -and $_.Enabled -eq 'True')} | Select Name,PasswordRequired,Enabled
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_00_000200_audit_dm_sa
+
+    - name: "MEDIUM | WN25-00-000200 | AUDIT - DOMAIN MEMBERS OR STANDALONE | Windows Server 2025 accounts must require passwords."
+      when:
+        - not discovered_00_000200_audit_dm_sa is skipped
+        - discovered_00_000200_audit_dm_sa.stdout != ""
+      ansible.builtin.debug:
+        msg:
+          - The accounts listed do not require a password and are currently enabled
+          - "{{ discovered_00_000200_audit_dm_sa.stdout.split('\n') }}"
+
+    - name: "MEDIUM | WN25-00-000200 | AUDIT | Windows Server 2025 accounts must require passwords. | Warn Count."
+      when:
+        - not discovered_00_000200_audit_dc is skipped
+        - discovered_00_000200_audit_dc.stdout != "" or
+          not discovered_00_000200_audit_dm_sa is skipped
+        - discovered_00_000200_audit_dm_sa.stdout != ""
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000200"
+
+- name: "MEDIUM | WN25-00-000210 | AUDIT | Windows Server 2025 passwords must be configured to expire."
+  when: wn25_00_000210 | bool
+  tags:
+    - WN25-00-000210
+    - CAT2
+    - CCI-004066
+    - SRG-OS-000076-GPOS-00044
+    - SV-278005r1182259_rule
+    - V-278005
+    - audit
+    - NIST800-53_IA-5_1_d
+    - NIST800-53A_IA-5_1_1_v
+    - NIST800-53_4_IA-5_1_d
+  block:
+    - name: "MEDIUM | WN25-00-000210 | AUDIT | Windows Server 2025 passwords must be configured to expire."
+      when: "'controller' in ansible_facts['windows_domain_role']"
+      ansible.windows.win_shell: Search-ADAccount -PasswordNeverExpires -UsersOnly | FT Name, PasswordNeverExpires, Enabled
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_00_000210_audit_dc
+
+    - name: "MEDIUM | WN25-00-000210 | AUDIT | Windows Server 2025 passwords must be configured to expire.| Message out"
+      when:
+        - discovered_00_000210_audit_dc is not skipped
+        - discovered_00_000210_audit_dc.stdout != ""
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This is a manual task. Windows Server 2025 passwords must be configured to expire."
+          - "The Following Accounts may not conform To STIG Standards."
+          - "{{ discovered_00_000210_audit_dc.stdout.split('\n') }}"
+
+    - name: "MEDIUM | WN25-00-000210 | AUDIT | Windows Server 2025 passwords must be configured to expire. | Audit Local Accounts."
+      when: "'controller' not in ansible_facts['windows_domain_role']"
+      ansible.windows.win_shell: |
+        Get-CimInstance -Class Win32_Useraccount -Filter "PasswordExpires=False and LocalAccount=True" |
+        Where-Object -FilterScript {$_.PasswordExpires -EQ $False -AND $_.Disabled -EQ $False} |
+        Format-Table -Property Name,PasswordExpires,Disabled,LocalAccount
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_00_000210_audit_dm_sa
+
+    - name: "MEDIUM | WN25-00-000210 | AUDIT | Windows Server 2025 passwords must be configured to expire. | Warning Count."
+      when: discovered_00_000210_audit_dc is not skipped and discovered_00_000210_audit_dc.stdout != "" or discovered_00_000210_audit_dm_sa is not skipped and discovered_00_000210_audit_dm_sa.stdout != ""
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000210"
+
+- name: "MEDIUM | WN25-00-000220 | AUDIT | Windows Server 2025 system files must be monitored for unauthorized changes."
+  when: wn25_00_000220 | bool
+  tags:
+    - WN25-00-000220
+    - CAT2
+    - CCI-001744
+    - SRG-OS-000363-GPOS-00150
+    - SV-278006r1182237_rule
+    - V-278006
+    - NIST800-53_CM-3_5
+  block:
+    - name: "MEDIUM | WN25-00-000220 | AUDIT | Windows Server 2025 system files must be monitored for unauthorized changes. | Message out"
+      ansible.builtin.debug:
+        msg: "Warning!! This is a manual task. Windows Server 2025 system files must be monitored for unauthorized changes."
+
+    - name: "MEDIUM | WN25-00-000220 | AUDIT | Windows Server 2025 system files must be monitored for unauthorized changes. | import reusable task."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000220"
+
+- name: "MEDIUM | WN25-00-000230 | AUDIT | Windows Server 2025 non-system-created file shares on a system must limit access to groups that require it."
+  when: wn25_00_000230 | bool
+  tags:
+    - WN25-00-000230
+    - CAT2
+    - CCI-001090
+    - SRG-OS-000138-GPOS-00069
+    - SV-278007r1181789_rule
+    - V-278007
+    - audit
+    - NIST800-53_SC-4
+    - NIST800-53_A_SC-4_1
+    - NIST800-53_4_SC-4
+  block:
+    - name: "MEDIUM | WN25-00-000230 | AUDIT | Non-system-created file shares on a system must limit access to groups that require it. | Audit Shares"
+      ansible.windows.win_shell: Get-SmbShare | Where-Object { ($_.Name -notlike "ADMIN$") -and ($_.Name -notlike 'C$') -and ($_.Name -notlike 'IPC$') } | Select-Object -Property Name | format-table -hidetableheaders
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_00_000230_audit
+
+    - name: "MEDIUM | WN25-00-000230 | AUDIT | Non-system-created file shares on a system must limit access to groups that require it. | Warning Message."
+      when: discovered_00_000230_audit.stdout_lines | select() | length > 0
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! You have shares that non-system created. Please manually review those shares listed below to make sure appropriate permissions are applied"
+          - "{{ discovered_00_000230_audit.stdout_lines | select() | list }}"
+
+    - name: "MEDIUM | WN25-00-000230 | AUDIT | Non-system-created file shares on a system must limit access to groups that require it."
+      when: discovered_00_000230_audit.stdout_lines | select() | length > 0
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000230"
+
+- name: "MEDIUM | WN25-00-000240 | PATCH | Windows Server 2025 must have software certificate installation files removed."
+  when:
+    - wn25_00_000240 | bool
+    - win25stig_lengthy_search | bool
+  tags:
+    - WN25-00-000240
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278008r1211146_rule
+    - V-278008
+    - audit
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  block:
+    - name: "MEDIUM | WN25-00-000240 | AUDIT | Windows Server 2025 must have software certificate installation files removed. | Search for files"
+      ansible.windows.win_find:
+        paths: '{{ item }}:\'
+        patterns: ["*.p12", "*.pfx"]
+        recurse: true
+        hidden: true
+      register: discovered_00_000240_files
+      with_items: "{{ prelim_drive_letters.stdout_lines | default([], true) }}"
+
+    - name: "MEDIUM | WN25-00-000240 | PATCH | Windows Server 2025 must have software certificate installation files removed. | Remove Files"
+      when:
+        - win25stig_disruption_high | bool
+        - (discovered_00_000240_files.results | default([], true) | first | default({}, true)).files | length > 0
+      ansible.windows.win_file:
+        path: "{{ item.path }}"
+        state: absent
+      with_items:
+        - "{{ (discovered_00_000240_files.results | default([], true) | first | default({}, true)).files }}"
+      loop_control:
+        label: "{{ item.path }}"
+
+    - name: "MEDIUM | WN25-00-000240 | AUDIT | Windows Server 2025 must have software certificate installation files removed. | Alert on files if not Disruptive High"
+      when:
+        - not win25stig_disruption_high | bool
+        - (discovered_00_000240_files.results | default([], true) | first | default({}, true)).files | length > 0
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! You have .p12 and/or .pfx files on your system"
+          - "Please review and remove the following files manually.  If you"
+          - "would like them removed with automation set win25stig_disruption_high: true"
+          - "Any files not removed must be documented with the ISSO."
+          - "{{ (discovered_00_000240_files.results | default([], true) | first | default({}, true)).files | map(attribute='path') | list }}"
+
+    - name: "MEDIUM | WN25-00-000240 | AUDIT | Windows Server 2025 must have software certificate installation files removed. | Warn Count."
+      when:
+        - not win25stig_disruption_high | bool
+        - (discovered_00_000240_files.results | default([], true) | first | default({}, true)).files | length > 0
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000240"
+
+- name: "MEDIUM | WN25-00-000260 | AUDIT | Windows Server 2025 must implement protection methods such as TLS, encrypted VPNs, or IPsec if the data owner has a strict requirement for ensuring data integrity and confidentiality is maintained at every step of the data transfer and handling process."
+  when: wn25_00_000260 | bool
+  tags:
+    - WN25-00-000260
+    - CAT2
+    - CCI-002420
+    - CCI-002422
+    - SRG-OS-000425-GPOS-00189
+    - SV-278010r1180736_rule
+    - V-278010
+    - NIST800-53_4_SC-8_2
+  block:
+    - name: "MEDIUM | WN25-00-000260 | AUDIT | Windows Server 2025 must implement protection methods such as TLS, encrypted VPNs, or IPsec if the data owner has a strict requirement for ensuring data integrity and confidentiality is maintained at every step of the data transfer and handling process."
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This is a manual task. Windows Server 2025 must implement protection methods such as TLS, encrypted VPNs,"
+          - "or IPsec if the data owner has a strict requirement for ensuring"
+          - "data integrity and confidentiality is maintained at every step of the data transfer and handling process."
+
+    - name: "MEDIUM | WN25-00-000260 | AUDIT | Windows Server 2025 must implement protection methods such as TLS, encrypted VPNs, or IPsec if the data owner has a strict requirement for ensuring data integrity and confidentiality is maintained at every step of the data transfer and handling process. | import reusable task."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000260"
+
+- name: "MEDIUM | WN25-00-000270 | AUDIT | Windows Server 2025 must have the roles and features required by the system documented."
+  when: wn25_00_000270 | bool
+  tags:
+    - WN25-00-000270
+    - CAT2
+    - CCI-000381
+    - SRG-OS-000095-GPOS-00049
+    - SV-278011r1182239_rule
+    - V-278011
+    - audit
+    - NIST800-53_4_CM-7
+    - NIST800-53_CM-7_1_ii
+    - NIST800-53_4_CM-7_a
+  block:
+    - name: "MEDIUM | WN25-00-000270 | AUDIT | The roles and features required by the system must be documented. | Audit The System"
+      ansible.windows.win_shell: Get-WindowsFeature | Where-Object -FilterScript {$_.Installed -EQ $True}
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_00_000270_audit
+
+    - name: "MEDIUM | WN25-00-000270 | AUDIT | The roles and features required by the system must be documented. | Warning Message."
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This is a manual task. Windows Server 2025 must have the roles"
+          - "and features required by the system documented. Below is the current list of"
+          - "roles and features installed on the system."
+          - "Document the roles and features required for the system to operate. Uninstall any that are not required."
+          - "{{ discovered_00_000270_audit.stdout_lines }}"
+
+    - name: "MEDIUM | WN25-00-000270 | AUDIT | The roles and features required by the system must be documented. | Warn Count."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000270"
+
+- name: "MEDIUM | WN25-00-000280 | AUDIT | Windows Server 2025 must have a host-based firewall installed and enabled."
+  when: wn25_00_000280 | bool
+  tags:
+    - WN25-00-000280
+    - CAT2
+    - CCI-002406
+    - SRG-OS-000480-GPOS-00227
+    - SV-278012r1181951_rule
+    - V-278012
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+    - NIST800-53_4_CA-3_5
+  block:
+    - name: "MEDIUM | WN25-00-000280 | AUDIT | Windows Server 2025 must have a host-based firewall installed and enabled."
+      ansible.windows.win_shell: |
+        $FWProfiles = (Get-NetFirewallProfile);
+        Write-Host "Windows Firewall Profile Statuses" -Foregroundcolor Yellow;
+        $FWProfiles | %{
+            If($_.Enabled -eq 1){
+                Write-Host "The Windows Firewall $($_.Name) profile is enabled"
+                }Else{
+                Write-Host "The Windows Firewall $($_.Name) profile is disabled"
+                }
+            };
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_00_000280_firewall_audit
+
+    - name: "MEDIUM | WN25-00-000280 | AUDIT | Windows Server 2025 must have a host-based firewall installed and enabled. | Warning Message No Windows Firewall Enabled"
+      when:
+        - "'Domain profile is disabled' in discovered_00_000280_firewall_audit.stdout_lines | string"
+        - "'Private profile is disabled' in discovered_00_000280_firewall_audit.stdout_lines | string"
+        - "'Public profile is disabled' in discovered_00_000280_firewall_audit.stdout_lines | string"
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This is a manual task. Windows Server 2025 must have a host-based firewall installed and enabled."
+          - "Windows does not currently have its built-in firewall enabled."
+          - "Please check for 3rd party firewall and verify the configuration requirements conform to firewall STIG standards."
+          - "{{ discovered_00_000280_firewall_audit.stdout_lines }}"
+
+    - name: "MEDIUM | WN25-00-000280 | AUDIT | Windows Server 2025 must have a host-based firewall installed and enabled. | Warning Message Windows Firewall On"
+      when:
+        - "'Domain profile is enabled' in discovered_00_000280_firewall_audit.stdout_lines | string"
+        - "'Private profile is enabled' in discovered_00_000280_firewall_audit.stdout_lines | string"
+        - "'Public profile is enabled' in discovered_00_000280_firewall_audit.stdout_lines | string"
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This is a manual task. Windows Server 2025 must have a host-based firewall installed and enabled."
+          - "Windows host-based firewall currently is enabled on Domain, Private, And Public Profiles."
+          - "Please check the firewall and verify the configuration requirements conform to firewall STIG standards."
+          - "{{ discovered_00_000280_firewall_audit.stdout_lines }}"
+
+    - name: "MEDIUM | WN25-00-000280 | AUDIT | Windows Server 2025 must have a host-based firewall installed and enabled. | Warning Message Windows Firewall Not Completely On"
+      when: "'Domain profile is enabled' not in discovered_00_000280_firewall_audit.stdout_lines | string or 'Private profile is enabled' not in discovered_00_000280_firewall_audit.stdout_lines | string or 'Public profile is enabled' not in discovered_00_000280_firewall_audit.stdout_lines | string"
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This is a manual task. Windows Server 2025 must have a host-based firewall installed and enabled."
+          - "Windows host-based firewall currently is partially enabled on Domain, Private, And Public Profiles."
+          - "Please check the firewall and verify the configuration requirements conform to firewall STIG standards."
+          - "{{ discovered_00_000280_firewall_audit.stdout_lines }}"
+
+    - name: "MEDIUM | WN25-00-000280 | AUDIT | Windows Server 2025 must have a host-based firewall installed and enabled. | import reusable task."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000280"
+
+- name: "MEDIUM | WN25-00-000300 | AUDIT | Windows Server 2025 must automatically remove or disable temporary user accounts after 72 hours."
+  when: wn25_00_000300 | bool
+  tags:
+    - WN25-00-000300
+    - CAT2
+    - CCI-000016
+    - SRG-OS-000002-GPOS-00002
+    - SV-278013r1182261_rule
+    - V-278013
+    - audit
+    - NIST800-53_4_AC-2_2
+    - NIST800-53_A_AC-2_2_1_ii
+  block:
+    - name: "MEDIUM | WN25-00-000300 | AUDIT - DOMAIN CONTROLLER | Windows Server 2025 must automatically remove or disable temporary user accounts after 72 hours. | Get User List."
+      when: "'controller' in ansible_facts['windows_domain_role']"
+      ansible.windows.win_shell: Search-ADAccount -AccountExpiring | FT Name, AccountExpirationDate
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_00_000300_audit_dc
+
+    - name: "MEDIUM | WN25-00-000300 | AUDIT - DOMAIN CONTROLLER | Windows Server 2025 must automatically remove or disable temporary user accounts after 72 hours. | Warning Message"
+      when:
+        - discovered_00_000300_audit_dc is not skipped
+        - discovered_00_000300_audit_dc.stdout != ""
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This is a manual task. Please review all accounts to verify there are no temporary accounts"
+          - "listed where the expiration date is longer than 72 hours."
+          - "{{ discovered_00_000300_audit_dc.stdout.split('\n') }}"
+
+    - name: "MEDIUM | WN25-00-000300 | AUDIT - DOMAIN MEMBERS OR STANDALONE | Windows Server 2025 must automatically remove or disable temporary user accounts after 72 hours. | Get User List."
+      when: "'controller' not in ansible_facts['windows_domain_role']"
+      ansible.windows.win_shell: Get-LocalUser
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_00_000300_audit_sa
+
+    - name: "MEDIUM | WN25-00-000300 | AUDIT - DOMAIN MEMBERS OR STANDALONE | Windows Server 2025 must automatically remove or disable temporary user accounts after 72 hours. | Warning Message"
+      when:
+        - discovered_00_000300_audit_sa is not skipped
+        - discovered_00_000300_audit_sa.stdout != ""
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This is a manual task. Please review all accounts to verify there are no temporary accounts"
+          - "listed where the expiration date is longer than 72 hours."
+          - "{{ discovered_00_000300_audit_sa.stdout.split('\n') }}"
+
+    - name: "MEDIUM | WN25-00-000300 | AUDIT | Windows Server 2025 must automatically remove or disable temporary user accounts after 72 hours. | Warning Count"
+      when: discovered_00_000300_audit_dc is not skipped and discovered_00_000300_audit_dc.stdout != "" or discovered_00_000300_audit_sa is not skipped and discovered_00_000300_audit_sa.stdout != ""
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000300"
+
+- name: "MEDIUM | WN25-00-000310 | AUDIT | Windows Server 2025 must automatically remove or disable emergency accounts after the crisis is resolved or within 72 hours."
+  when: wn25_00_000310 | bool
+  tags:
+    - WN25-00-000310
+    - CAT2
+    - CCI-001682
+    - SRG-OS-000123-GPOS-00064
+    - SV-278014r1182263_rule
+    - V-278014
+    - audit
+    - NIST800-53_AC-2_2
+    - NIST800-53_AC-2_2_1_ii
+    - NIST800-53_4_AC-2_2
+  block:
+    - name: "MEDIUM | WN25-00-000310 | AUDIT - DOMAIN CONTROLLER | Windows Server 2025 must automatically remove or disable emergency accounts after the crisis is resolved or within 72 hours. | Get User List."
+      when: "'controller' in ansible_facts['windows_domain_role']"
+      ansible.windows.win_shell: Search-ADAccount -AccountExpiring | FT Name, AccountExpirationDate
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_00_000310_audit_dc
+
+    - name: "MEDIUM | WN25-00-000310 | AUDIT - DOMAIN CONTROLLER | Windows Server 2025 must automatically remove or disable emergency accounts after the crisis is resolved or within 72 hours. | Warning Message"
+      when:
+        - discovered_00_000310_audit_dc is not skipped
+        - discovered_00_000310_audit_dc.stdout != ""
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This is a manual task. Windows Server 2025 must automatically remove or disable emergency"
+          - "accounts after the crisis is resolved or within 72 hours."
+          - "{{ discovered_00_000310_audit_dc.stdout.split('\n') }}"
+
+    - name: "MEDIUM | WN25-00-000310 | AUDIT - DOMAIN MEMBERS OR STANDALONE | Windows Server 2025 must automatically remove or disable emergency accounts after the crisis is resolved or within 72 hours. | Get User List."
+      when: "'controller' not in ansible_facts['windows_domain_role']"
+      ansible.windows.win_shell: Get-LocalUser
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_00_000310_audit_sa
+
+    - name: "MEDIUM | WN25-00-000310 | AUDIT - DOMAIN MEMBERS OR STANDALONE | Windows Server 2025 must automatically remove or disable emergency accounts after the crisis is resolved or within 72 hours. | Warning Message"
+      when:
+        - discovered_00_000310_audit_sa is not skipped
+        - discovered_00_000310_audit_sa.stdout != ""
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This is a manual task. Windows Server 2025 must automatically remove or disable emergency"
+          - "accounts after the crisis is resolved or within 72 hours."
+          - "{{ discovered_00_000310_audit_sa.stdout.split('\n') }}"
+
+    - name: "MEDIUM | WN25-00-000310 | AUDIT | Windows Server 2025 must automatically remove or disable emergency accounts after the crisis is resolved or within 72 hours. | Warning Count"
+      when: discovered_00_000310_audit_dc is not skipped and discovered_00_000310_audit_dc.stdout != "" or discovered_00_000310_audit_sa is not skipped and discovered_00_000310_audit_sa.stdout != ""
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000310"
+
+- name: "MEDIUM | WN25-00-000320 | PATCH | Windows Server 2025 must not have the Fax Server role installed."
+  when:
+    - wn25_00_000320 | bool
+    - "'Fax' in prelim_feature_names"
+  tags:
+    - WN25-00-000320
+    - CAT2
+    - CCI-000381
+    - SRG-OS-000095-GPOS-00049
+    - SV-278015r1180751_rule
+    - V-278015
+    - NIST800-53_CM-7
+    - NIST800-53_CM-7_1_ii
+    - NIST800-53_4_CM-7_a
+  ansible.windows.win_feature:
+    name: Fax
+    state: absent
+  notify: Change_requires_reboot
+
+- name: "MEDIUM | WN25-00-000330 | PATCH | Windows Server 2025 must not have the Microsoft FTP service installed unless required by the organization."
+  when:
+    - wn25_00_000330 | bool
+    - "'Web-Ftp-Server' in prelim_feature_names"
+  tags:
+    - WN25-00-000330
+    - CAT2
+    - CCI-000382
+    - SRG-OS-000096-GPOS-00050
+    - SV-278016r1181795_rule
+    - V-278016
+    - NIST800-53_CM-7
+    - NIST800-53_CM-7_1_iii
+    - NIST800-53_4_CM-7_b
+  ansible.windows.win_feature:
+    name: Web-Ftp-Server
+    state: absent
+  notify: Change_requires_reboot
+
+- name: "MEDIUM | WN25-00-000332 | AUDIT | Windows Server 2025 must not have Wi-Fi enabled unless required by the organization."
+  when: wn25_00_000332 | bool
+  tags:
+    - WN25-00-000332
+    - CAT2
+    - CCI-000382
+    - SRG-OS-000096-GPOS-00050
+    - SV-278017r1180757_rule
+    - V-278017
+  vars:
+    warn_control_id: "WN25-00-000332"
+  block:
+    - name: "MEDIUM | WN25-00-000332 | AUDIT | Windows Server 2025 must not have Wi-Fi enabled unless required by the organization."
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This is a manual task. Validate the site documentation to confirm Wi-Fi server connections"
+          - "are approved. If they are not approved, remove or disable the Wi-Fi adapter under"
+          - "Settings >> Network and Internet. Removing a physical adapter is left manual on purpose."
+
+    - name: "MEDIUM | WN25-00-000332 | AUDIT | Windows Server 2025 must not have Wi-Fi enabled unless required by the organization. | Warn Count."
+      ansible.builtin.import_tasks:
+        file: warning_facts.yml
+
+- name: "MEDIUM | WN25-00-000333 | PATCH | Windows Server 2025 must not have Bluetooth enabled unless required by the organization."
+  when: wn25_00_000333 | bool
+  tags:
+    - WN25-00-000333
+    - CAT2
+    - CCI-000382
+    - SRG-OS-000096-GPOS-00050
+    - SV-278018r1180760_rule
+    - V-278018
+    - NIST800-53_CM-7
+    - NIST800-53_A_CM-7_1_ii
+    - NIST800-53_4_CM-7_b
+  vars:
+    warn_control_id: "WN25-00-000333"
+  block:
+    - name: "MEDIUM | WN25-00-000333 | AUDIT | Windows Server 2025 must not have Bluetooth enabled unless required by the organization. | Get Bluetooth Support Service State."
+      ansible.windows.win_service_info:
+        name: bthserv
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_00_000333_audit
+
+    - name: "MEDIUM | WN25-00-000333 | PATCH | Windows Server 2025 must not have Bluetooth enabled unless required by the organization. | Disable Bluetooth Support Service."
+      when: discovered_00_000333_audit.exists | default(false, true)
+      ansible.windows.win_service:
+        name: bthserv
+        state: stopped
+        start_mode: disabled
+
+    - name: "MEDIUM | WN25-00-000333 | AUDIT | Windows Server 2025 must not have Bluetooth enabled unless required by the organization. | Warning Message."
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! Validate the site documentation to confirm Bluetooth use is approved."
+          - "The Bluetooth Support Service has been disabled where present. If the organization requires"
+          - "Bluetooth, set wn25_00_000333 to false and document the exception."
+
+    - name: "MEDIUM | WN25-00-000333 | AUDIT | Windows Server 2025 must not have Bluetooth enabled unless required by the organization. | Warn Count."
+      ansible.builtin.import_tasks:
+        file: warning_facts.yml
+
+- name: "MEDIUM | WN25-00-000340 | PATCH | Windows Server 2025 must not have the Peer Name Resolution Protocol installed."
+  when:
+    - wn25_00_000340 | bool
+    - "'PNRP' in prelim_feature_names"
+  tags:
+    - WN25-00-000340
+    - CAT2
+    - CCI-000381
+    - SRG-OS-000095-GPOS-00049
+    - SV-278019r1180763_rule
+    - V-278019
+    - NIST800-53_CM-7
+    - NIST800-53_A_CM-7_1_ii
+    - NIST800-53_4_CM-7_a
+  ansible.windows.win_feature:
+    name: PNRP
+    state: absent
+  notify: Change_requires_reboot
+
+- name: "MEDIUM | WN25-00-000350 | PATCH | Windows Server 2025 must not have Simple TCP/IP Services installed."
+  when:
+    - wn25_00_000350 | bool
+    - "'Simple-TCPIP' in prelim_feature_names"
+  tags:
+    - WN25-00-000350
+    - CAT2
+    - CCI-000381
+    - SRG-OS-000095-GPOS-00049
+    - SV-278020r1180766_rule
+    - V-278020
+    - NIST800-53_CM-7
+    - NIST800-53_A_CM-7_1_ii
+    - NIST800-53_4_CM-7_a
+  ansible.windows.win_feature:
+    name: Simple-TCPIP
+    state: absent
+
+- name: "MEDIUM | WN25-00-000360 | PATCH | Windows Server 2025 must not have the Telnet Client installed."
+  when:
+    - wn25_00_000360 | bool
+    - "'Telnet-Client' in prelim_feature_names"
+  tags:
+    - WN25-00-000360
+    - CAT2
+    - CCI-000382
+    - SRG-OS-000096-GPOS-00050
+    - SV-278021r1180769_rule
+    - V-278021
+    - NIST800-53_CM-7
+    - NIST800-53_A_CM-7_1_iii
+    - NIST800-53_4_CM-7_5_b
+  ansible.windows.win_feature:
+    name: Telnet-Client
+    state: absent
+
+- name: "MEDIUM | WN25-00-000370 | PATCH | Windows Server 2025 must not have the TFTP Client installed."
+  when:
+    - wn25_00_000370 | bool
+    - "'TFTP-Client' in prelim_feature_names"
+  tags:
+    - WN25-00-000370
+    - CAT2
+    - CCI-000381
+    - SRG-OS-000095-GPOS-00049
+    - SV-278022r1180772_rule
+    - V-278022
+    - NIST800-53_CM-7
+    - NIST800-53_A_CM-7_1_ii
+    - NIST800-53_4_CM-7_a
+  ansible.windows.win_feature:
+    name: TFTP-Client
+    state: absent
+
+- name: "MEDIUM | WN25-00-000380 | PATCH | Windows Server 2025 must not have the Server Message Block (SMB) v1 protocol installed."
+  when:
+    - wn25_00_000380 | bool
+    - "'FS-SMB1' in prelim_feature_names"
+  tags:
+    - WN25-00-000380
+    - CAT2
+    - CCI-000381
+    - SRG-OS-000095-GPOS-00049
+    - SV-278023r1182034_rule
+    - V-278023
+    - NIST800-53_CM-7
+    - NIST800-53_A_CM-7_1_ii
+    - NIST800-53_4_CM-7_a
+  ansible.windows.win_feature:
+    name: FS-SMB1
+    state: absent
+  notify: Change_requires_reboot
+
+- name: "MEDIUM | WN25-00-000390 | PATCH | Windows Server 2025 must have the Server Message Block (SMB) v1 protocol disabled on the SMB server."
+  when: wn25_00_000390 | bool
+  tags:
+    - WN25-00-000390
+    - CAT2
+    - CCI-000381
+    - SRG-OS-000095-GPOS-00049
+    - SV-278024r1182036_rule
+    - V-278024
+    - NIST800-53_CM-7
+    - NIST800-53_A_CM-7_1_ii
+    - NIST800-53_4_CM-7_a
+  block:
+    - name: "MEDIUM | WN25-00-000390 | PATCH | Windows Server 2025 must have the Server Message Block (SMB) v1 protocol disabled on the SMB server. | Registry Edit"
+      ansible.windows.win_regedit:
+        path: HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters
+        state: present
+        value: SMB1
+        data: 0
+        datatype: dword
+      notify: Change_requires_reboot
+
+    - name: "MEDIUM | WN25-00-000390 | AUDIT | Windows Server 2025 must have the Server Message Block (SMB) v1 protocol disabled on the SMB server. | Warning Message No SecGuide.admx"
+      when: (prelim_secguide_admx_audit.results | default([], true) | first | default({}, true)).matched != 1
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! SecGuide.admx is not installed in C:\\Windows\\PolicyDefinitions folder."
+          - "This policy setting requires the installation of the SecGuide.admx custom templates"
+          - "included with the STIG package."
+
+    - name: "MEDIUM | WN25-00-000390 | AUDIT | Windows Server 2025 must have the Server Message Block (SMB) v1 protocol disabled on the SMB server. | Warning Message No SecGuide.adml"
+      when: (prelim_secguide_adml_audit.results | default([], true) | first | default({}, true)).matched != 1
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! SecGuide.adml is not installed in C:\\Windows\\PolicyDefinitions\\en-US folder"
+          - "This policy setting requires the installation of the SecGuide.adml custom templates"
+          - "included with the STIG package."
+
+    - name: "MEDIUM | WN25-00-000390 | AUDIT | Windows Server 2025 must have the Server Message Block (SMB) v1 protocol disabled on the SMB server. | Warn Count."
+      when: (prelim_secguide_admx_audit.results | default([], true) | first | default({}, true)).matched != 1 or (prelim_secguide_adml_audit.results | default([], true) | first | default({}, true)).matched != 1
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000390"
+
+- name: "MEDIUM | WN25-00-000400 | PATCH | Windows Server 2025 must have the Server Message Block (SMB) v1 protocol disabled on the SMB client."
+  when: wn25_00_000400 | bool
+  tags:
+    - WN25-00-000400
+    - CAT2
+    - CCI-000381
+    - SRG-OS-000095-GPOS-00049
+    - SV-278025r1182038_rule
+    - V-278025
+    - NIST800-53_CM-7
+    - NIST800-53_A_CM-7_1_ii
+    - NIST800-53_4_CM-7_a
+  block:
+    - name: "MEDIUM | WN25-00-000400 | PATCH | Windows Server 2025 must have the Server Message Block (SMB) v1 protocol disabled on the SMB client - mrxsmb10 | Registry Edit."
+      ansible.windows.win_regedit:
+        path: HKLM:\SYSTEM\CurrentControlSet\Services\mrxsmb10
+        state: present
+        value: Start
+        data: 4
+        datatype: dword
+      notify: Change_requires_reboot
+
+    - name: "MEDIUM | WN25-00-000400 | AUDIT | Windows Server 2025 must have the Server Message Block (SMB) v1 protocol disabled on the SMB client - mrxsmb10 | Warning Message No SecGuide.admx"
+      when: (prelim_secguide_admx_audit.results | default([], true) | first | default({}, true)).matched != 1
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! SecGuide.admx is not installed in C:\\Windows\\PolicyDefinitions folder."
+          - "This policy setting requires the installation of the SecGuide.admx custom templates"
+          - "included with the STIG package."
+
+    - name: "MEDIUM | WN25-00-000400 | AUDIT | Windows Server 2025 must have the Server Message Block (SMB) v1 protocol disabled on the SMB client - mrxsmb10 | Warning Message No SecGuide.adml"
+      when: (prelim_secguide_adml_audit.results | default([], true) | first | default({}, true)).matched != 1
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! SecGuide.adml is not installed in C:\\Windows\\PolicyDefinitions\\en-US folder"
+          - "This policy setting requires the installation of the SecGuide.adml custom templates"
+          - "included with the STIG package."
+
+    - name: "MEDIUM | WN25-00-000400 | AUDIT | Windows Server 2025 must have the Server Message Block (SMB) v1 protocol disabled on the SMB client - mrxsmb10 | Warn Count."
+      when: (prelim_secguide_admx_audit.results | default([], true) | first | default({}, true)).matched != 1 or (prelim_secguide_adml_audit.results | default([], true) | first | default({}, true)).matched != 1
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000400"
+
+- name: "MEDIUM | WN25-00-000410 | PATCH | Windows Server 2025 must not have Windows PowerShell 2.0 installed."
+  when:
+    - wn25_00_000410 | bool
+    - "'PowerShell-V2' in prelim_feature_names"
+  tags:
+    - WN25-00-000410
+    - CAT2
+    - CCI-000381
+    - SRG-OS-000095-GPOS-00049
+    - SV-278026r1180784_rule
+    - V-278026
+    - NIST800-53_CM-7
+    - NIST800-53_A_CM-7_1_ii
+    - NIST800-53_4_CM-7_a
+  ansible.windows.win_feature:
+    name: PowerShell-V2
+    state: absent
+
+- name: "MEDIUM | WN25-00-000420 | AUDIT | Windows Server 2025 FTP servers must be configured to prevent anonymous logons."
+  when: wn25_00_000420 | bool
+  tags:
+    - WN25-00-000420
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278027r1181803_rule
+    - V-278027
+    - audit
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  block:
+    - name: "MEDIUM | WN25-00-000420 | AUDIT | FTP servers must be configured to prevent anonymous logons. | Get FTP Installed Status."
+      ansible.windows.win_shell: Get-WindowsFeature | Where Name -eq Web-Ftp-Service
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_00_000420_audit
+
+    - name: "MEDIUM | WN25-00-000420 | AUDIT | FTP servers must be configured to prevent anonymous logons. | Set Fact."
+      ansible.builtin.set_fact:
+        discovered_00_000420_ftp_audit: "{{ discovered_00_000420_audit.stdout | default('', true) is search('Installed') }}"
+
+    - name: "MEDIUM | WN25-00-000420 | AUDIT | FTP servers must be configured to prevent anonymous logons. | Warning Message"
+      when: discovered_00_000420_ftp_audit
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This is a manual task. Internet Information Services (IIS) Manager FTP is currently"
+          - "installed on the system. Anonymous Authentication must be set to disabled per STIG Requirements."
+
+    - name: "MEDIUM | WN25-00-000420 | AUDIT | FTP servers must be configured to prevent anonymous logons. | Warn Count"
+      when: discovered_00_000420_ftp_audit
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000420"
+
+- name: "MEDIUM | WN25-00-000430 | AUDIT | Windows Server 2025 FTP servers must be configured to prevent access to the system drive."
+  when: wn25_00_000430 | bool
+  tags:
+    - WN25-00-000430
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278028r1182265_rule
+    - V-278028
+    - audit
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  block:
+    - name: "MEDIUM | WN25-00-000430 | AUDIT | FTP servers must be configured to prevent access to the system drive. | Get FTP Installed."
+      ansible.windows.win_shell: Get-WindowsFeature | Where Name -eq Web-Ftp-Service
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_00_000430_audit
+
+    - name: "MEDIUM | WN25-00-000430 | AUDIT | FTP servers must be configured to prevent access to the system drive. | Set Fact."
+      ansible.builtin.set_fact:
+        discovered_00_000430_ftp_audit: "{{ discovered_00_000430_audit.stdout | default('', true) is search('Installed') }}"
+
+    - name: "MEDIUM | WN25-00-000430 | AUDIT | FTP servers must be configured to prevent access to the system drive. | Get Sites Info."
+      when: discovered_00_000430_ftp_audit
+      ansible.windows.win_shell: |
+        Import-Module IISAdministration
+        Get-IISSite
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_00_000430_isssite_audit
+
+    - name: "MEDIUM | WN25-00-000430 | AUDIT | FTP servers must be configured to prevent access to the system drive. | Warning Message."
+      when: discovered_00_000430_ftp_audit
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This is a manual task. For any sites with a Binding that lists FTP, right-click the site and select Explore."
+          - "If the site includes any system areas such as the root of the drive, Program Files, or Windows directories, this is a finding"
+          - "Configure the FTP sites to allow access only to specific FTP shared resources. Do not allow access to other areas of the system."
+          - "{{ discovered_00_000430_isssite_audit.stdout.split('\n') }}"
+
+    - name: "MEDIUM | WN25-00-000430 | AUDIT | FTP servers must be configured to prevent access to the system drive. | Warn Count"
+      when: discovered_00_000430_ftp_audit
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000430"
+
+- name: "MEDIUM | WN25-00-000450 | AUDIT | Windows Server 2025 must have orphaned security identifiers (SIDs) must be removed from user rights"
+  when: wn25_00_000450 | bool
+  tags:
+    - WN25-00-000450
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278030r1182043_rule
+    - V-278030
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  block:
+    - name: "MEDIUM | WN25-00-000450 | AUDIT | Windows Server 2025 must have orphaned security identifiers (SIDs) must be removed from user rights. | Get User List"
+      ansible.windows.win_shell: Get-WmiObject Win32_UserAccount | Where-Object {$_.SID -match "*S"} | Select Name,SID,DOMAIN
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_00_000450_orphaned_user_accounts
+
+    - name: "MEDIUM | WN25-00-000450 | AUDIT | Windows Server 2025 must have orphaned security identifiers (SIDs) must be removed from user rights. | Check For Orphaned Group Accounts. | Get Group List"
+      ansible.windows.win_shell: Get-WmiObject -Class Win32_UserAccount | Where-Object {$_.SID -match "*S"} | Select Name,SID,DOMAIN
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_00_000450_orphaned_group_accounts
+
+    - name: "MEDIUM | WN25-00-000450 | AUDIT | Windows Server 2025 must have orphaned security identifiers (SIDs) must be removed from user rights. | Warning Message User Accounts"
+      when: discovered_00_000450_orphaned_user_accounts.stdout_lines | select() | length > 0
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! Please review the User Rights listed for each of any unresolved SIDs to determine whether they are valid."
+          - "User Accounts"
+          - "----------------------------------------------------------------------"
+          - "{{ discovered_00_000450_orphaned_user_accounts.stdout_lines }}"
+
+    - name: "MEDIUM | WN25-00-000450 | AUDIT | Windows Server 2025 must have orphaned security identifiers (SIDs) must be removed from user rights. | Warning Message Group Accounts."
+      when: discovered_00_000450_orphaned_group_accounts.stdout_lines | select() | length > 0
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! Please review the Group Rights listed for each of any unresolved SIDs to determine whether they are valid."
+          - "Group Accounts"
+          - "----------------------------------------------------------------------"
+          - "{{ discovered_00_000450_orphaned_group_accounts.stdout_lines }}"
+
+    - name: "MEDIUM | WN25-00-000450 | AUDIT | Windows Server 2025 must have orphaned security identifiers (SIDs) must be removed from user rights. | Warn Count."
+      when: discovered_00_000450_orphaned_user_accounts.stdout_lines | select() | length > 0 or discovered_00_000450_orphaned_group_accounts.stdout_lines | select() | length > 0
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000450"
+
+- name: "MEDIUM | WN25-00-000460 | AUDIT | Windows Server 2025 systems must have Unified Extensible Firmware Interface (UEFI) firmware and be configured to run in UEFI mode, not Legacy BIOS."
+  when: wn25_00_000460 | bool
+  tags:
+    - WN25-00-000460
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278031r1182046_rule
+    - V-278031
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  block:
+    - name: "MEDIUM | WN25-00-000460 | AUDIT | Windows Server 2025 systems must have Unified Extensible Firmware Interface (UEFI) firmware and be configured to run in UEFI mode, not Legacy BIOS."
+      ansible.builtin.debug:
+        msg: "Warning!! This is a manual task. Windows Server 2025 systems must have Unified Extensible Firmware Interface (UEFI) firmware and be configured to run in UEFI mode, not Legacy BIOS."
+
+    - name: "MEDIUM | WN25-00-000460 | AUDIT | Windows Server 2025 systems must have Unified Extensible Firmware Interface (UEFI) firmware and be configured to run in UEFI mode, not Legacy BIOS. | import reusable task."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000460"
+
+- name: "MEDIUM | WN25-00-000470 | AUDIT | Windows Server 2025 must have Secure Boot enabled."
+  when: wn25_00_000470 | bool
+  tags:
+    - WN25-00-000470
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278032r1180802_rule
+    - V-278032
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  block:
+    - name: "MEDIUM | WN25-00-000470 | AUDIT | Windows Server 2025 must have Secure Boot enabled."
+      ansible.builtin.debug:
+        msg: "Warning!! This is a manual task. Windows Server 2025 must have Secure Boot enabled. "
+
+    - name: "MEDIUM | WN25-00-000470 | AUDIT | Windows Server 2025 must have Secure Boot enabled. | import reusable task."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000470"
+
+# THE FOLLOWING 3 CONTROLS WILL FAIL UNLESS THEY ARE IN THE FOLLOWING ORDER FOR LOCAL BASED SYSTEMS.
+# We have found the order of these three tasks varies between cloud based instances
+# and VM based instances. The task below breaks out to run in a different order
+# for cloud based systems
