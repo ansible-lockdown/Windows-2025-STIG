@@ -1,0 +1,9 @@
+{#- WN25-SH-000020 - the OpenSSH banner shown before authentication.
+    Composed from the same two variables the interactive Windows logon notice uses, so the
+    SSH banner and the console banner cannot drift apart:
+      win25stig_legalnoticecaption -> the title (WN25-SO-000140, LegalNoticeCaption)
+      win25stig_legalnoticetext    -> the body  (LegalNoticeText)
+-#}
+{{ win25stig_legalnoticecaption }}
+
+{{ win25stig_legalnoticetext }}

@@ -1,0 +1,219 @@
+---
+
+- name: "HIGH | WN25-DC-000010 | AUDIT | Windows Server 2025 must only allow administrators responsible for the domain controller to have Administrator rights on the system."
+  when:
+    - wn25_dc_000010 | bool
+    - "'controller' in ansible_facts['windows_domain_role']"
+  tags:
+    - WN25-DC-000010
+    - CAT1
+    - CCI-002235
+    - SRG-OS-000324-GPOS-00125
+    - SV-278132r1181102_rule
+    - V-278132
+    - audit
+    - NIST800-53_4_AC-6_10
+  block:
+    - name: "HIGH | WN25-DC-000010 | AUDIT | Windows Server 2025 must only allow administrators responsible for the domain controller to have Administrator rights on the system."
+      ansible.windows.win_shell: get-localgroupmember administrators | Select name | Format-Table -HideTableHeaders
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_dc_000010_admin_usrs
+
+    - name: "HIGH | WN25-DC-000010 | AUDIT | Windows Server 2025 must only allow administrators responsible for the domain controller to have Administrator rights on the system."
+      ansible.builtin.debug:
+        msg:
+          - "Alert! Below are the users in the Administrators group. Please review and confirm all users should be in this group"
+          - "{{ discovered_dc_000010_admin_usrs.stdout_lines }}"
+
+    - name: "HIGH | WN25-DC-000010 | AUDIT | Windows Server 2025 must only allow administrators responsible for the domain controller to have Administrator rights on the system. | Warn Count."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-DC-000010"
+
+- name: "HIGH | WN25-DC-000070 | AUDIT | Windows Server 2025 permissions on the Active Directory data files must only allow system administrators (SAs) access."
+  when:
+    - wn25_dc_000070 | bool
+    - "'controller' in ansible_facts['windows_domain_role']"
+  tags:
+    - WN25-DC-000070
+    - CAT1
+    - CCI-001314
+    - CCI-002235
+    - SRG-OS-000324-GPOS-00125
+    - SV-278138r1182081_rule
+    - V-278138
+    - NIST800-53_SI-11_c
+    - NIST800-53_SI-11_1_iv
+    - NIST800-53_4_SI-11_b
+    - NIST800-53_4_AC-6_10
+  block:
+    - name: "HIGH | WN25-DC-000070 | AUDIT | Windows Server 2025 permissions on the Active Directory data files must only allow system administrators (SAs) access. | Message out"
+      ansible.builtin.debug:
+        msg: "Warning!! This is a manual task. Windows Server 2025 permissions on the Active Directory data files must only allow system administrators (SAs) access."
+
+    - name: "WN25-DC-000070 | AUDIT | Windows Server 2025 permissions on the Active Directory data files must only allow system administrators (SAs) access. | import reusable task."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-DC-000070"
+
+- name: "HIGH | WN25-DC-000080 | AUDIT | Windows Server 2025 Active Directory SYSVOL directory must have the proper access control permissions."
+  when:
+    - wn25_dc_000080 | bool
+    - "'controller' in ansible_facts['windows_domain_role']"
+  tags:
+    - WN25-DC-000080
+    - CAT1
+    - CCI-002235
+    - SRG-OS-000324-GPOS-00125
+    - SV-278139r1182083_rule
+    - V-278139
+    - NIST800-53_4_AC-6_10
+  block:
+    - name: "HIGH | WN25-DC-000080 | AUDIT | Windows Server 2025 Active Directory SYSVOL directory must have the proper access control permissions. | Message out"
+      ansible.builtin.debug:
+        msg: "Warning!! This is a manual task. Windows Server 2025 Active Directory SYSVOL directory must have the proper access control permissions."
+
+    - name: "HIGH | WN25-DC-000080 | AUDIT | Windows Server 2025 Active Directory SYSVOL directory must have the proper access control permissions. | import reusable task."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-DC-000080"
+
+- name: "HIGH | WN25-DC-000090 | AUDIT | Windows Server 2025 Active Directory (AD) Group Policy Objects (GPOs) must have proper access control permissions."
+  when:
+    - wn25_dc_000090 | bool
+    - "'controller' in ansible_facts['windows_domain_role']"
+  tags:
+    - WN25-DC-000090
+    - CAT1
+    - CCI-002235
+    - SRG-OS-000324-GPOS-00125
+    - SV-278140r1182086_rule
+    - V-278140
+    - NIST800-53_4_AC-6_10
+  block:
+    - name: "HIGH | WN25-DC-000090 | AUDIT | Windows Server 2025 Active Directory (AD) Group Policy Objects (GPOs) must have proper access control permissions. | Message out"
+      ansible.builtin.debug:
+        msg: "Warning!! This is a manual task. Windows Server 2025 Active Directory (AD) Group Policy Objects (GPOs) must have proper access control permissions."
+
+    - name: "HIGH | WN25-DC-000090 | AUDIT | Windows Server 2025 Active Directory (AD) Group Policy Objects (GPOs) must have proper access control permissions. | import reusable task."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-DC-000090"
+
+- name: "HIGH | WN25-DC-000100 | AUDIT | Windows Server 2025 Active Directory Domain Controllers Organizational Unit (OU) object must have the proper access control permissions."
+  when:
+    - wn25_dc_000100 | bool
+    - "'controller' in ansible_facts['windows_domain_role']"
+  tags:
+    - WN25-DC-000100
+    - CAT1
+    - CCI-002235
+    - SRG-OS-000324-GPOS-00125
+    - SV-278141r1182088_rule
+    - V-278141
+    - NIST800-53_4_AC-6_10
+  block:
+    - name: "HIGH | WN25-DC-000100 | AUDIT | Windows Server 2025 Active Directory Domain Controllers Organizational Unit (OU) object must have the proper access control permissions. | Message out"
+      ansible.builtin.debug:
+        msg: "Warning!! This is a manual task. Windows Server 2025 Active Directory Domain Controllers Organizational Unit (OU) object must have the proper access control permissions."
+
+    - name: "HIGH | WN25-DC-000100 | AUDIT | Windows Server 2025 Active Directory Domain Controllers Organizational Unit (OU) object must have the proper access control permissions. | import reusable task."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-DC-000100"
+
+- name: "HIGH | WN25-DC-000110 | AUDIT | Windows Server 2025 organization created Active Directory Organizational Unit (OU) objects must have proper access control permissions."
+  when:
+    - wn25_dc_000110 | bool
+    - "'controller' in ansible_facts['windows_domain_role']"
+  tags:
+    - WN25-DC-000110
+    - CAT1
+    - CCI-002235
+    - SV-278142r1182090_rule
+    - V-278142
+    - SRG-OS-000324-GPOS-00125
+    - NIST800-53_4_AC-6_10
+  block:
+    - name: "HIGH | WN25-DC-000110 | AUDIT | Windows Server 2025 organization created Active Directory Organizational Unit (OU) objects must have proper access control permissions. | Message out"
+      ansible.builtin.debug:
+        msg: "Warning!! This is a manual task. Windows Server 2025 organization created Active Directory Organizational Unit (OU) objects must have proper access control permissions."
+
+    - name: "HIGH | WN25-DC-000110 | AUDIT | Windows Server 2025 organization created Active Directory Organizational Unit (OU) objects must have proper access control permissions. | import reusable task."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-DC-000110"
+
+- name: "HIGH | WN25-DC-000150 | AUDIT | Windows Server 2025 directory data (outside the root DSE) of a nonpublic directory must be configured to prevent anonymous access."
+  when:
+    - wn25_dc_000150 | bool
+    - "'controller' in ansible_facts['windows_domain_role']"
+  tags:
+    - WN25-DC-000150
+    - CAT1
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278146r1182098_rule
+    - V-278146
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_AC-6_10
+  block:
+    - name: "HIGH | WN25-DC-000150 | AUDIT | Windows Server 2025 directory data (outside the root DSE) of a nonpublic directory must be configured to prevent anonymous access. | Message out"
+      ansible.builtin.debug:
+        msg: "Warning!! This is a manual task. Windows Server 2025 directory data (outside the root DSE) of a nonpublic directory must be configured to prevent anonymous access."
+
+    - name: "HIGH | WN25-DC-000150 | AUDIT | Windows Server 2025 directory data (outside the root DSE) of a nonpublic directory must be configured to prevent anonymous access. | import reusable task."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-DC-000150"
+
+- name: "HIGH | WN25-DC-000290 | AUDIT | Windows Server 2025 domain Controller PKI certificates must be issued by the DoD PKI or an approved External Certificate Authority (ECA)."
+  when:
+    - wn25_dc_000290 | bool
+    - "'controller' in ansible_facts['windows_domain_role']"
+  tags:
+    - WN25-DC-000290
+    - CAT1
+    - CCI-000185
+    - SRG-OS-000066-GPOS-00034
+    - SV-278160r1182126_rule
+    - V-278160
+    - NIST800-53_IA-5_2
+    - NIST800-53_A_IA-5_2_1
+    - NIST800-53_4_IA-5_2_a
+  block:
+    - name: "HIGH | WN25-DC-000290 | AUDIT | Windows Server 2025 domain Controller PKI certificates must be issued by the DoD PKI or an approved External Certificate Authority (ECA). | Message out"
+      ansible.builtin.debug:
+        msg: "Warning!! This is a manual task. Windows Server 2025 domain Controller PKI certificates must be issued by the DoD PKI or an approved External Certificate Authority (ECA)."
+
+    - name: "HIGH | WN25-DC-000290 | AUDIT | Windows Server 2025 domain Controller PKI certificates must be issued by the DoD PKI or an approved External Certificate Authority (ECA). | import reusable task."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-DC-000290"
+
+- name: "HIGH | WN25-DC-000300 | AUDIT | Windows Server 2025 PKI certificates associated with user accounts must be issued by a DOD PKI or an approved External Certificate Authority (ECA)."
+  when:
+    - wn25_dc_000300 | bool
+    - "'controller' in ansible_facts['windows_domain_role']"
+  tags:
+    - WN25-DC-000300
+    - CAT1
+    - CCI-000185
+    - SRG-OS-000066-GPOS-00034
+    - SV-278161r1182128_rule
+    - V-278161
+    - NIST800-53_IA-5_2
+    - NIST800-53_A_IA-5_2_1
+    - NIST800-53_4_IA-5_2_a
+  block:
+    - name: "HIGH | WN25-DC-000300 | AUDIT | Windows Server 2025 PKI certificates associated with user accounts must be issued by a DOD PKI or an approved External Certificate Authority (ECA). | Message out"
+      ansible.builtin.debug:
+        msg: "Warning!! This is a manual task. Windows Server 2025 PKI certificates associated with user accounts must be issued by a DOD PKI or an approved External Certificate Authority (ECA)."
+
+    - name: "HIGH | WN25-DC-000300 | AUDIT | Windows Server 2025 PKI certificates associated with user accounts must be issued by a DOD PKI or an approved External Certificate Authority (ECA). | import reusable task."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-DC-000300"

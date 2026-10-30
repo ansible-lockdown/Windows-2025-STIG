@@ -1,0 +1,45 @@
+---
+
+- name: "Run Cat2 STIG | WN25-00 controls"
+  ansible.builtin.import_tasks:
+    file: WN25-00-xxxxxx.yml
+
+- name: "Run Cat2 STIG | WN25-AC controls"
+  ansible.builtin.import_tasks:
+    file: WN25-AC-xxxxxx.yml
+
+- name: "Run Cat2 STIG | WN25-AU controls"
+  ansible.builtin.import_tasks:
+    file: WN25-AU-xxxxxx.yml
+
+- name: "Run Cat2 STIG | WN25-CC controls"
+  ansible.builtin.import_tasks:
+    file: WN25-CC-xxxxxx.yml
+
+- name: "Run Cat2 STIG | WN25-DC controls"
+  ansible.builtin.import_tasks:
+    file: WN25-DC-xxxxxx.yml
+
+- name: "Run Cat2 STIG | WN25-MS controls"
+  ansible.builtin.import_tasks:
+    file: WN25-MS-xxxxxx.yml
+
+- name: "Run Cat2 STIG | WN25-PK controls"
+  ansible.builtin.import_tasks:
+    file: WN25-PK-xxxxxx.yml
+
+- name: "Run Cat2 STIG | WN25-SO controls"
+  ansible.builtin.import_tasks:
+    file: WN25-SO-xxxxxx.yml
+
+- name: "Run Cat2 STIG | WN25-UC controls"
+  ansible.builtin.import_tasks:
+    file: WN25-UC-xxxxxx.yml
+
+- name: "Run Cat2 STIG | WN25-UR controls"
+  ansible.builtin.import_tasks:
+    file: WN25-UR-xxxxxx.yml
+
+- name: "Run Cat2 STIG | WN25-SH controls"
+  ansible.builtin.import_tasks:
+    file: WN25-SH-xxxxxx.yml

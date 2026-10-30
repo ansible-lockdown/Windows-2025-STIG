@@ -1,0 +1,298 @@
+---
+
+- name: "PRELIM | Gather Windows Domain Facts"
+  when: ansible_facts['windows_domain_member'] is not defined
+  tags: always
+  ansible.builtin.setup:
+    gather_subset: windows_domain,!all,!min
+
+- name: "PRELIM | Set Fact If Domain Joined."
+  when: ansible_facts['windows_domain_member'] is defined
+  tags: always
+  ansible.builtin.set_fact:
+    discovered_domain_joined: "{{ ansible_facts['windows_domain_member'] }}"
+
+# Every [System Access] control in this role is written with secedit. On a domain joined
+# host the Default Domain Policy owns that section and overwrites it at each policy refresh,
+# so a local write reverts within roughly two hours while the run still reports success. An
+# audit taken straight afterwards therefore reports a compliance that does not last. The
+# 12 secedit backed controls are skipped on such a host and the operator is told once.
+- name: "PRELIM | Account Policy Scope"
+  tags: always
+  block:
+    - name: "PRELIM | Account Policy Scope | Set fact when account policy is domain scoped"
+      when: discovered_domain_joined | bool
+      ansible.builtin.set_fact:
+        discovered_account_policy_is_domain_scoped: true
+
+    - name: "PRELIM | Account Policy Scope | Warn that account policy is set at the domain"
+      when: discovered_account_policy_is_domain_scoped | bool
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This host is domain joined, so the [System Access] account policy is set"
+          - "by the domain rather than locally. The Default Domain Policy overwrites local"
+          - "[System Access] at every policy refresh, so anything written here reverts within"
+          - "about two hours and an audit run straight afterwards reports a compliance that does"
+          - "not last. The 12 secedit backed controls - the account lockout trio and the"
+          - "password policy controls - are therefore skipped on this host. Set them in the"
+          - "Default Domain Policy instead."
+
+    - name: "PRELIM | Account Policy Scope | Set warning count"
+      when: discovered_account_policy_is_domain_scoped | bool
+      vars:
+        warn_control_id: 'Account policy is domain scoped'
+      ansible.builtin.import_tasks:
+        file: warning_facts.yml
+
+- name: "PRELIM | Get Drive Letters"
+  when: wn25_00_000240 or wn25_au_000060 or wn25_00_000390 or wn25_00_000400
+  tags: always
+  ansible.windows.win_shell: Get-Volume | ?{ $_.DriveType -eq 'Fixed' } | Select-Object -ExpandProperty 'DriveLetter'
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  register: prelim_drive_letters
+
+- name: "PRELIM | Check For SecGuide.admx In PolicyDefinitions"
+  when: wn25_00_000390 or wn25_00_000400
+  tags: always
+  ansible.windows.win_find:
+    paths: '{{ item }}:\Windows\PolicyDefinitions'
+    patterns: SecGuide.admx
+    hidden: true
+  changed_when: false
+  failed_when: false
+  with_items:
+    - "{{ prelim_drive_letters.stdout_lines | default([], true) }}"
+  register: prelim_secguide_admx_audit
+
+- name: "PRELIM | Check For SecGuide.adml In PolicyDefinitions\\en-US"
+  when: wn25_00_000390 or wn25_00_000400
+  tags: always
+  ansible.windows.win_find:
+    paths: '{{ item }}:\Windows\PolicyDefinitions\en-US'
+    patterns: SecGuide.adml
+    hidden: true
+  changed_when: false
+  failed_when: false
+  with_items:
+    - "{{ prelim_drive_letters.stdout_lines | default([], true) }}"
+  register: prelim_secguide_adml_audit
+
+# The WN25-SH-* controls harden an existing OpenSSH install. Detect it once here rather than
+# probing in each control. WN25-SH-000010 is the only one that may install OpenSSH, and it is
+# opt-in via win25stig_install_openssh.
+- name: "PRELIM | Detect OpenSSH Server"
+  tags: always
+  ansible.windows.win_service_info:
+    name: sshd
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  register: prelim_sshd_service
+
+- name: "PRELIM | Detect OpenSSH Configuration File"
+  tags: always
+  ansible.windows.win_stat:
+    path: "{{ win25stig_sshd_config_path }}"
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  register: prelim_sshd_config_stat
+
+# Two distinct facts, because they are not the same thing. Windows creates sshd_config and the
+# host keys when sshd FIRST STARTS, not when the capability is installed. A host can have the
+# sshd service registered and C:\ProgramData\ssh present but empty, and every control that
+# edits sshd_config then fails with "Path ... does not exist". The hardening controls therefore
+# gate on prelim_openssh_configured, not on prelim_openssh_installed.
+- name: "PRELIM | Set Fact For OpenSSH Presence"
+  tags: always
+  ansible.builtin.set_fact:
+    prelim_openssh_installed: "{{ prelim_sshd_service.exists | default(false, true) }}"
+    prelim_openssh_configured: "{{ prelim_sshd_config_stat.stat.exists | default(false, true) }}"
+
+- name: "PRELIM | Warn When OpenSSH Is Installed But Not Configured"
+  when:
+    - prelim_openssh_installed
+    - not prelim_openssh_configured
+  tags: always
+  ansible.builtin.debug:
+    msg:
+      - "Warning!! The sshd service is present but {{ win25stig_sshd_config_path }} does not exist,"
+      - "so OpenSSH has never been started and has generated no configuration or host keys."
+      - "The WN25-SH-* hardening controls will be skipped. Start sshd once, or set"
+      - "win25stig_install_openssh to true, then run the role again to harden it."
+
+# Windows Server 2025 dropped several optional features that earlier releases shipped - PNRP and
+# PowerShell-V2 among them. win_feature raises "The role, role service, or feature name is not
+# valid" for a name the OS does not know, which aborts the play on a control whose requirement is
+# already trivially met. Enumerate the valid names once and gate the removals on membership.
+- name: "PRELIM | Get Valid Windows Feature Names"
+  tags: always
+  ansible.windows.win_shell: Get-WindowsFeature | Select-Object -ExpandProperty Name
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  register: prelim_windows_features
+
+- name: "PRELIM | Set Fact For Valid Windows Feature Names"
+  tags: always
+  ansible.builtin.set_fact:
+    prelim_feature_names: "{{ prelim_windows_features.stdout_lines | default([], true) | map('trim') | select | list }}"
+
+# Two controls remove a local account's ability to reach this host over the network, which means
+# they sever the run that is applying them.
+#
+#   WN25-MS-000020  writes LocalAccountTokenFilterPolicy=0, filtering the privileged token of local
+#                   accounts on NETWORK logon. WinRM and psrp die; SSH survives, because it does
+#                   not take that logon path.
+#   WN25-MS-000080  denies network logon to Guests, Enterprise Admins, Domain Admins, Local account
+#                   and Local account and member of Administrators group. That removes the network
+#                   logon right outright, so WinRM AND SSH both die, because Windows OpenSSH
+#                   password authentication uses the same logon path.
+#
+# Both present misleadingly as "the specified credentials were rejected by the server": the port
+# keeps answering and the service keeps running, only authentication is refused. Do not diagnose
+# either as a network or service fault. Host proven on a sibling role in the Windows Fleet 2026-09-16,
+# where every remote transport failed after the equivalent control applied, including SSH public
+# key and WinRM certificate authentication, leaving the console as the only way in.
+- name: "PRELIM | Control Connection Scope"
+  tags: always
+  block:
+    # A domain principal is either DOMAIN\user or user@realm, so a name carrying neither
+    # separator is a local account.
+    #
+    # The backslash comes from a YAML single quoted variable rather than a Jinja literal on
+    # purpose. In a Jinja expression neither a single nor a doubled backslash literal matches one
+    # backslash here: the first is a syntax error, the second tests for two. A YAML single quoted
+    # scalar takes the character literally and never reaches Jinja's string parser.
+    - name: "PRELIM | Control Connection Scope | Detect whether the run connects as a local account"
+      vars:
+        domain_separator_backslash: '\'
+      ansible.builtin.set_fact:
+        prelim_control_account_is_local: >-
+          {{ domain_separator_backslash not in (ansible_user | default(''))
+             and '@' not in (ansible_user | default('')) }}
+
+    # Two facts, because the two controls have different blast radii. WN25-MS-000020 filters the token
+    # on NETWORK logon only, so SSH survives it. WN25-MS-000080 removes the network logon right
+    # outright, so it severs SSH as well.
+    - name: "PRELIM | Control Connection Scope | Detect a local account over a network logon transport"
+      ansible.builtin.set_fact:
+        prelim_local_account_network_logon: >-
+          {{ prelim_control_account_is_local | bool
+             and (ansible_connection | default('ssh')) not in ['ssh', 'smart'] }}
+
+    - name: "PRELIM | Control Connection Scope | Warn that WN25-MS-000020 is skipped to keep the connection"
+      when:
+        - prelim_local_account_network_logon | bool
+        - ansible_facts['windows_domain_role'] == "Member server"
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This run is connected as a local account over a network logon transport."
+          - "WN25-MS-000020 sets LocalAccountTokenFilterPolicy=0, which filters the privileged token"
+          - "of local accounts on network logon and would sever this connection mid-run."
+          - "It is skipped automatically. Connect with a domain account, or over SSH, to have it"
+          - "applied - a domain account is exempt and SSH does not use that logon path."
+
+    - name: "PRELIM | Control Connection Scope | Set WN25-MS-000020 warning count"
+      when:
+        - prelim_local_account_network_logon | bool
+        - ansible_facts['windows_domain_role'] == "Member server"
+      ansible.builtin.import_tasks:
+        file: warning_facts.yml
+      vars:
+        warn_control_id: 'WN25-MS-000020'
+
+    - name: "PRELIM | Control Connection Scope | Warn that WN25-MS-000080 is skipped to keep the connection"
+      when:
+        - prelim_control_account_is_local | bool
+        - ansible_facts['windows_domain_role'] == "Member server"
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This run is connected as a local account on a domain joined member server."
+          - "WN25-MS-000080 denies network logon to Guests, Enterprise Admins, Domain Admins, Local"
+          - "account and Local account and member of Administrators group. That removes this"
+          - "account's network logon right and severs the run. It takes BOTH transports with it:"
+          - "Windows OpenSSH password authentication uses the same logon path, so SSH is reset at"
+          - "the first auth packet and is not a fallback. The host is then reachable only from the"
+          - "console. It is skipped automatically. To have it applied, connect as a domain account"
+          - "that is NOT a Domain Admin or Enterprise Admin - those two are denied by this control"
+          - "as well - and that IS a member of the local Administrators group on the target."
+
+    - name: "PRELIM | Control Connection Scope | Set WN25-MS-000080 warning count"
+      when:
+        - prelim_control_account_is_local | bool
+        - ansible_facts['windows_domain_role'] == "Member server"
+      ansible.builtin.import_tasks:
+        file: warning_facts.yml
+      vars:
+        warn_control_id: 'WN25-MS-000080'
+
+# Per-user controls cannot be written to HKCU. win_regedit resolves HKCU to the hive of the
+# account Ansible authenticated as, so the setting lands in the automation account's profile and
+# reaches no real user, while the task still reports changed. Load every user hive plus the
+# Default profile under HKEY_USERS instead, so the per-user tasks can loop them.
+#
+# Nothing here fails the run. A hive that is locked by a signed-in user, or a profile directory
+# without an NTUSER.DAT, is skipped and simply does not get mounted.
+- name: "PRELIM | Load the Default and per-user registry hives"
+  when:
+    - win25stig_load_user_hives | bool
+    - not ansible_check_mode
+  tags: always
+  block:
+    - name: "PRELIM | Record the hives loaded before the role loads any"
+      ansible.windows.win_shell: (Get-ChildItem "REGISTRY::HKEY_USERS").name | Where-Object {$_ -notlike "*_classes"}
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_hku_baseline
+
+    # The baseline the unload step subtracts, so a hive that was already mounted is left alone.
+    - name: "PRELIM | Set fact for the hives already loaded"
+      ansible.builtin.set_fact:
+        discovered_hku_preloaded_list: "{{ discovered_hku_baseline.stdout | regex_replace('HKEY_USERS\\\\', '') | split }}"
+
+    # The profile every new account is created from, so settings written here are inherited.
+    - name: "PRELIM | Load the Default user hive"
+      ansible.windows.win_command: REG LOAD HKU\DEFAULT C:\Users\Default\NTUSER.DAT
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    # ProfileList, not Win32_UserAccount. Win32_UserAccount returns local accounts only, so a
+    # domain account with a profile on this machine is missed entirely, and the per-user
+    # controls then leave its hive unset. The benchmark's ntuser checks read every profile
+    # directory, so a missed profile is a finding.
+    #
+    # ProfileImagePath is also the real location: it must not be assumed to be
+    # C:\Users\<account name>, which is wrong whenever a profile was renamed or created
+    # against a name collision.
+    - name: "PRELIM | Enumerate user profiles from ProfileList"
+      ansible.windows.win_shell: |
+        Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList" |
+          ForEach-Object {
+            $sid  = $_.PSChildName
+            $path = (Get-ItemProperty $_.PSPath -Name ProfileImagePath -EA SilentlyContinue).ProfileImagePath
+            if ($sid -like 'S-1-5-21-*' -and $path -and (Test-Path "$path\NTUSER.DAT")) {
+              "$sid|$path"
+            }
+          }
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_user_profiles
+
+    # Filtered on S-1-5-21-* so the service SIDs (S-1-5-18/19/20) are left alone, and on
+    # NTUSER.DAT existing so a stale ProfileList entry cannot produce a failed REG LOAD.
+    - name: "PRELIM | Set fact for user profile SIDs and paths"
+      ansible.builtin.set_fact:
+        discovered_user_profile_list: "{{ discovered_user_profiles.stdout_lines | default([], true) | map('trim') | select | map('split', '|') | list }}"
+
+    - name: "PRELIM | Load each user hive by SID"
+      ansible.windows.win_command: REG LOAD HKU\{{ item.0 }} "{{ item.1 }}\NTUSER.DAT"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      loop: "{{ discovered_user_profile_list }}"

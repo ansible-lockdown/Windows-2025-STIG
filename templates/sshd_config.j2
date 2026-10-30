@@ -1,0 +1,53 @@
+{{ file_managed_by_ansible }}
+#
+# This role OWNS this file. Anything added here by hand, or by another tool, is replaced on the
+# next run. That is the trade for a deterministic baseline: the STIG check for every WN25-SH-*
+# configuration control greps this file directly, so a sshd_config.d drop-in would not satisfy
+# the documented check procedure even though sshd itself would honor it.
+#
+# Each STIG directive is gated on its own control toggle, so disabling a control leaves that
+# directive out of the rendered file rather than silently pinning it.
+
+# ── STIG managed ────────────────────────────────────────────────────────────────
+{% if wn25_sh_000050 | bool %}
+# WN25-SH-000050 - force frequent session key renegotiation
+RekeyLimit {{ win25stig_ssh_rekeylimit }}
+{% endif %}
+{% if wn25_sh_000030 | bool %}
+# WN25-SH-000030 - accept public key authentication
+PubkeyAuthentication yes
+{% endif %}
+{% if wn25_sh_000040 | bool %}
+# WN25-SH-000040 (CAT I) - must not allow blank passwords
+PermitEmptyPasswords no
+{% endif %}
+{% if wn25_sh_000110 | bool %}
+# WN25-SH-000110 - must not allow GSSAPI authentication
+GSSAPIAuthentication no
+{% endif %}
+{% if wn25_sh_000070 | bool %}
+# WN25-SH-000070 - terminate unresponsive connections after 10 minutes
+ClientAliveInterval {{ win25stig_ssh_clientaliveinterval }}
+{% endif %}
+{% if wn25_sh_000060 | bool %}
+# WN25-SH-000060 - unresponsive connection count before termination
+ClientAliveCountMax {{ win25stig_ssh_clientalivecountmax }}
+{% endif %}
+{% if wn25_sh_000020 | bool %}
+# WN25-SH-000020 - DOD Notice and Consent Banner before authentication
+Banner {{ win25stig_ssh_banner_path }}
+{% endif %}
+
+# ── Windows OpenSSH defaults ────────────────────────────────────────────────────
+# Not mandated by the benchmark, but shipped by Windows and reproduced here because this file is
+# rendered whole. Losing the Match block below would break administrator public key authentication,
+# and losing AllowGroups would change who may log in at all. Override the variables rather than
+# editing this template.
+AuthorizedKeysFile {{ win25stig_sshd_authorizedkeysfile }}
+
+Subsystem	sftp	{{ win25stig_sshd_sftp_subsystem }}
+
+AllowGroups {{ win25stig_sshd_allowgroups }}
+
+Match Group administrators
+       AuthorizedKeysFile {{ win25stig_sshd_admin_authorizedkeysfile }}
