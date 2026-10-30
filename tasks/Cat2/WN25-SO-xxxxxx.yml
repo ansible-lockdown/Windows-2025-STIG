@@ -1,0 +1,768 @@
+---
+
+- name: "MEDIUM | WN25-SO-000010 | PATCH | Windows Server 2025 must have the built-in guest account disabled."
+  when:
+    - wn25_so_000010 | bool
+    - not discovered_account_policy_is_domain_scoped | bool
+  tags:
+    - WN25-SO-000010
+    - CAT2
+    - CCI-000804
+    - SRG-OS-000121-GPOS-00062
+    - SV-278195r1181291_rule
+    - V-278195
+    - NIST800-53_IA-8
+    - NIST800-53_A_IA-8_1
+    - NIST800-53_4_IA-8
+  community.windows.win_security_policy:
+    section: System Access
+    key: EnableGuestAccount
+    value: 0
+
+# XCCDF: member servers and stand-alone systems only; not applicable for domain controllers.
+- name: "MEDIUM | WN25-SO-000030 | PATCH | The Windows Server 2025 built-in administrator account must be renamed."
+  when:
+    - wn25_so_000030 | bool
+    - "'controller' not in ansible_facts['windows_domain_role']"
+    - not discovered_account_policy_is_domain_scoped | bool
+  tags:
+    - WN25-SO-000030
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278197r1182315_rule
+    - V-278197
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  block:
+    - name: "MEDIUM | WN25-SO-000030 | AUDIT | The Windows Server 2025 built-in administrator account must be renamed. | Warning For Bad Variable."
+      when: "'adminchangethis' in win25stig_newadministratorname"
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! You have not changed the default name for win25stig_newadministratorname, please read"
+          - "the notes for the variable and make the necessary change to the variable to be in compliance."
+
+    - name: "MEDIUM | WN25-SO-000030 | AUDIT | The Windows Server 2025 built-in administrator account must be renamed. | Warn Count."
+      when: "'adminchangethis' in win25stig_newadministratorname"
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-SO-000030"
+
+    - name: "MEDIUM | WN25-SO-000030 | PATCH | The Windows Server 2025 built-in administrator account must be renamed. | Set Variable."
+      when: "'adminchangethis' not in win25stig_newadministratorname"
+      community.windows.win_security_policy:
+        section: System Access
+        key: NewAdministratorName
+        value: "{{ win25stig_newadministratorname }}"
+
+# XCCDF: member servers and stand-alone systems only; not applicable for domain controllers.
+- name: "MEDIUM | WN25-SO-000040 | PATCH | The Windows Server 2025 built-in guest account must be renamed."
+  when:
+    - wn25_so_000040 | bool
+    - "'controller' not in ansible_facts['windows_domain_role']"
+    - not discovered_account_policy_is_domain_scoped | bool
+  tags:
+    - WN25-SO-000040
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278198r1182317_rule
+    - V-278198
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  block:
+    - name: "MEDIUM | WN25-SO-000040 | AUDIT | The Windows Server 2025 built-in guest account must be renamed. | Warning For Bad Variable."
+      when: "'guestchangethis' in win25stig_newguestname"
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! You have not changed the default name for win25stig_newguestname, please read"
+          - "the notes for the variable and make the necessary change to the variable to be in compliance."
+
+    - name: "MEDIUM | WN25-SO-000040 | AUDIT | The Windows Server 2025 built-in guest account must be renamed. | Warn Count."
+      when: "'guestchangethis' in win25stig_newguestname"
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-SO-000040"
+
+    - name: "MEDIUM | WN25-SO-000040 | PATCH | The Windows Server 2025 built-in guest account must be renamed. | Set Variable."
+      when: "'guestchangethis' not in win25stig_newguestname"
+      community.windows.win_security_policy:
+        section: System Access
+        key: NewGuestName
+        value: "{{ win25stig_newguestname }}"
+
+- name: "MEDIUM | WN25-SO-000050 | PATCH | Windows Server 2025 must force audit policy subcategory settings to override audit policy category settings."
+  when: wn25_so_000050 | bool
+  tags:
+    - WN25-SO-000050
+    - CAT2
+    - CCI-000169
+    - SRG-OS-000062-GPOS-00031
+    - SV-278199r1181303_rule
+    - V-278199
+    - NIST800-53_AU-12_a
+    - NIST800-53_A_AU-12_1_ii
+    - NIST800-53_4_AU-12_a
+  ansible.windows.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\
+    value: SCENoApplyLegacyAuditPolicy
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-SO-000060 | PATCH | The Windows Server 2025 setting Domain member: Digitally encrypt or sign secure channel data (always) must be configured to Enabled."
+  when:
+    - wn25_so_000060 | bool
+    - ansible_facts['windows_domain_role'] == "Member server"
+  tags:
+    - WN25-SO-000060
+    - CAT2
+    - CCI-002418
+    - CCI-002421
+    - SRG-OS-000423-GPOS-00187
+    - SV-278200r1181306_rule
+    - V-278200
+    - NIST800-53_4_SC-8
+    - NIST800-53_4_SC-8_1
+  ansible.windows.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Services\Netlogon\Parameters
+    value: RequireSignOrSeal
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-SO-000070 | PATCH | Windows Server 2025 setting Domain member: Digitally encrypt secure channel data (when possible) must be configured to Enabled."
+  when:
+    - wn25_so_000070 | bool
+    - ansible_facts['windows_domain_role'] == "Member server"
+  tags:
+    - WN25-SO-000070
+    - CAT2
+    - CCI-002418
+    - CCI-002421
+    - SRG-OS-000423-GPOS-00187
+    - SV-278201r1181309_rule
+    - V-278201
+    - NIST800-53_4_SC-8
+    - NIST800-53_4_SC-8_1
+  ansible.windows.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Services\Netlogon\Parameters
+    value: SealSecureChannel
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-SO-000080 | PATCH | The Windows Server 2025 setting Domain member: Digitally sign secure channel data (when possible) must be configured to Enabled."
+  when:
+    - wn25_so_000080 | bool
+    - ansible_facts['windows_domain_role'] == "Member server"
+  tags:
+    - WN25-SO-000080
+    - CAT2
+    - CCI-002418
+    - CCI-002421
+    - SRG-OS-000423-GPOS-00187
+    - SV-278202r1181312_rule
+    - V-278202
+    - NIST800-53_4_SC-8
+    - NIST800-53_4_SC-8_1
+  ansible.windows.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Services\Netlogon\Parameters
+    value: SignSecureChannel
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-SO-000090 | PATCH | Windows Server 2025 computer account password must not be prevented from being reset."
+  when: wn25_so_000090 | bool
+  tags:
+    - WN25-SO-000090
+    - CAT2
+    - CCI-001967
+    - SRG-OS-000379-GPOS-00164
+    - SV-278203r1181315_rule
+    - V-278203
+    - NIST800-53_4_IA-3_1
+  ansible.windows.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Services\Netlogon\Parameters
+    value: DisablePasswordChange
+    data: 0
+    datatype: dword
+
+# XCCDF: member servers and stand-alone systems only; not applicable for domain controllers.
+- name: "MEDIUM | WN25-SO-000100 | PATCH | Windows Server 2025 maximum age for machine account passwords must be configured to 30 days or less."
+  when:
+    - wn25_so_000100 | bool
+    - "'controller' not in ansible_facts['windows_domain_role']"
+  tags:
+    - WN25-SO-000100
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278204r1182319_rule
+    - V-278204
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  block:
+    - name: "MEDIUM | WN25-SO-000100 | AUDIT | Windows Server 2025 maximum age for machine account passwords must be configured to 30 days or less. | Number Of Days Check."
+      when: win25stig_machineaccountpassword_max_age > 30 or win25stig_machineaccountpassword_max_age == 0
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! You have not set the right number of days for win25stig_machineaccountpassword_max_age"
+          - "Please read the notes for the variable and make the necessary change to the variable to be in compliance."
+
+    - name: "MEDIUM | WN25-SO-000100 | AUDIT | Windows Server 2025 maximum age for machine account passwords must be configured to 30 days or less. | Warn Count."
+      when: win25stig_machineaccountpassword_max_age > 30 or win25stig_machineaccountpassword_max_age == 0
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-SO-000100"
+
+    - name: "MEDIUM | WN25-SO-000100 | PATCH | Windows Server 2025 maximum age for machine account passwords must be configured to 30 days or less. | Apply Variable."
+      when:
+        - win25stig_machineaccountpassword_max_age <= 30
+        - win25stig_machineaccountpassword_max_age != 0
+      ansible.windows.win_regedit:
+        path: HKLM:\SYSTEM\CurrentControlSet\Services\Netlogon\Parameters
+        state: present
+        value: MaximumPasswordAge
+        data: "{{ win25stig_machineaccountpassword_max_age }}"
+        datatype: dword
+
+- name: "MEDIUM | WN25-SO-000110 | PATCH | Windows Server 2025 must be configured to require a strong session key."
+  when: wn25_so_000110 | bool
+  tags:
+    - WN25-SO-000110
+    - CAT2
+    - CCI-002418
+    - CCI-002421
+    - SRG-OS-000423-GPOS-00187
+    - SV-278205r1181321_rule
+    - V-278205
+    - NIST800-53_4_SC-8
+    - NIST800-53_4_SC-8_1
+  ansible.windows.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Services\Netlogon\Parameters
+    value: RequireStrongKey
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-SO-000120 | PATCH | Windows Server 2025 machine inactivity limit must be set to 15 minutes or less, locking the system with the screen saver."
+  when: wn25_so_000120 | bool
+  tags:
+    - WN25-SO-000120
+    - CAT2
+    - CCI-000056
+    - CCI-000057
+    - CCI-000060
+    - SRG-OS-000028-GPOS-00009
+    - SV-278206r1181324_rule
+    - V-278206
+    - NIST800-53_AC-11_b
+    - NIST800-53_A_AC-11_1_iii
+    - NIST800-53_4_AC-11_b
+    - NIST800-53_AC-11_a
+    - NIST800-53_A_AC-11_1_ii
+    - NIST800-53_4_AC-11_a
+    - NIST800-53_AC-11_1
+    - NIST800-53_A_AC-11_1_1
+    - NIST800-53_4_AC-11_1
+  block:
+    - name: "MEDIUM | WN25-SO-000120 | AUDIT | Windows Server 2025 machine inactivity limit must be set to 15 minutes or less, locking the system with the screen saver. | Number Of Seconds Check."
+      when: win25stig_inactivitytimeoutsecs > 900 or win25stig_inactivitytimeoutsecs == 0
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! You have not set the right number of seconds for win25stig_inactivitytimeoutsecs"
+          - "Please read the notes for the variable and make the necessary change to the variable to be in compliance."
+
+    - name: "MEDIUM | WN25-SO-000120 | AUDIT | Windows Server 2025 machine inactivity limit must be set to 15 minutes or less, locking the system with the screen saver. | Warn Count."
+      when: win25stig_inactivitytimeoutsecs > 900 or win25stig_inactivitytimeoutsecs == 0
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-SO-000120"
+
+    - name: "MEDIUM | WN25-SO-000120 | PATCH | Windows Server 2025 machine inactivity limit must be set to 15 minutes or less, locking the system with the screen saver. | Apply Variable."
+      when:
+        - win25stig_inactivitytimeoutsecs <= 900
+        - win25stig_inactivitytimeoutsecs != 0
+      ansible.windows.win_regedit:
+        path: HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System
+        state: present
+        value: InactivityTimeoutSecs
+        data: "{{ win25stig_inactivitytimeoutsecs }}"
+        datatype: dword
+
+- name: "MEDIUM | WN25-SO-000130 | PATCH | The Windows Server 2025 required legal notice must be configured to display before console logon."
+  when: wn25_so_000130 | bool
+  tags:
+    - WN25-SO-000130
+    - CAT2
+    - CCI-000048
+    - CCI-000050
+    - CCI-001384
+    - CCI-001385
+    - CCI-001386
+    - CCI-001387
+    - CCI-001388
+    - SRG-OS-000023-GPOS-00006
+    - SV-278207r1181327_rule
+    - V-278207
+    - NIST800-53_AC-8_a
+    - NIST800-53_A_AC-8_1_ii
+    - NIST800-53_4_AC-8_a
+    - NIST800-53_AC-8_b
+    - NIST800-53_A_AC-8_1_iii
+    - NIST800-53_4_AC-8_b
+    - NIST800-53_AC-8_c
+    - NIST800-53_A_AC-8_2_i
+    - NIST800-53_4_AC-8_c_1
+    - NIST800-53_A_AC-8_2_ii
+    - NIST800-53_4_AC-8_c_2
+    - NIST800-53_A_AC-8_2_iii
+    - NIST800-53_4_AC-8_c_3
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System
+    value: LegalNoticeText
+    data: "{{ win25stig_legalnoticetext }}"
+    datatype: string
+
+- name: "MEDIUM | WN25-SO-000150 | PATCH | The Windows Server 2025 Smart Card removal option must be configured to Force Logoff or Lock Workstation."
+  when: wn25_so_000150 | bool
+  tags:
+    - WN25-SO-000150
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278209r1181333_rule
+    - V-278209
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon
+    value: scremoveoption
+    data: 1
+    datatype: string
+
+- name: "MEDIUM | WN25-SO-000160 | PATCH | The Windows Server 2025 setting Microsoft network client: Digitally sign communications (always) must be configured to Enabled."
+  when: wn25_so_000160 | bool
+  tags:
+    - WN25-SO-000160
+    - CAT2
+    - CCI-002418
+    - CCI-002421
+    - SRG-OS-000423-GPOS-00187
+    - SV-278210r1181336_rule
+    - V-278210
+    - NIST800-53_4_SC-8
+    - NIST800-53_4_SC-8_1
+  ansible.windows.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters
+    value: RequireSecuritySignature
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-SO-000170 | PATCH | The Windows Server 2025 setting Microsoft network client: Digitally sign communications (if server agrees) must be configured to Enabled."
+  when: wn25_so_000170 | bool
+  tags:
+    - WN25-SO-000170
+    - CAT2
+    - CCI-002418
+    - CCI-002421
+    - SRG-OS-000423-GPOS-00187
+    - SV-278211r1181339_rule
+    - V-278211
+    - NIST800-53_4_SC-8
+    - NIST800-53_4_SC-8_1
+  ansible.windows.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters
+    value: EnableSecuritySignature
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-SO-000180 | PATCH | Windows Server 2025 unencrypted passwords must not be sent to third-party Server Message Block (SMB) servers."
+  when: wn25_so_000180 | bool
+  tags:
+    - WN25-SO-000180
+    - CAT2
+    - CCI-000197
+    - SRG-OS-000074-GPOS-00042
+    - SV-278212r1181342_rule
+    - V-278212
+    - NIST800-53_IA-5_1_c
+    - NIST800-53_A_IA-5_1_1_v
+    - NIST800-53_4_IA-5_1_c
+  ansible.windows.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters
+    value: EnablePlainTextPassword
+    data: 0
+    datatype: dword
+
+- name: "MEDIUM | WN25-SO-000190 | PATCH | The Windows Server 2025 setting Microsoft network server: Digitally sign communications (always) must be configured to Enabled."
+  when: wn25_so_000190 | bool
+  tags:
+    - WN25-SO-000190
+    - CAT2
+    - CCI-002418
+    - CCI-002421
+    - SRG-OS-000423-GPOS-00187
+    - SV-278213r1181345_rule
+    - V-278213
+    - NIST800-53_4_SC-8
+    - NIST800-53_4_SC-8_1
+  ansible.windows.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Services\LanManServer\Parameters
+    value: RequireSecuritySignature
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-SO-000200 | PATCH | The Windows Server 2025 setting Microsoft network server: Digitally sign communications (if client agrees) must be configured to Enabled."
+  when: wn25_so_000200 | bool
+  tags:
+    - WN25-SO-000200
+    - CAT2
+    - CCI-002418
+    - CCI-002421
+    - SRG-OS-000423-GPOS-00187
+    - SV-278214r1181348_rule
+    - V-278214
+    - NIST800-53_4_SC-8
+    - NIST800-53_4_SC-8_1
+  ansible.windows.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Services\LanManServer\Parameters
+    value: EnableSecuritySignature
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-SO-000240 | PATCH | Windows Server 2025 must be configured to prevent anonymous users from having the same permissions as the Everyone group."
+  when: wn25_so_000240 | bool
+  tags:
+    - WN25-SO-000240
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278218r1181360_rule
+    - V-278218
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  ansible.windows.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Control\Lsa
+    value: EveryoneIncludesAnonymous
+    data: 0
+    datatype: dword
+
+- name: "MEDIUM | WN25-SO-000260 | PATCH | Windows Server 2025 services using Local System that use Negotiate when reverting to NTLM authentication must use the computer identity instead of authenticating anonymously."
+  when: wn25_so_000260 | bool
+  tags:
+    - WN25-SO-000260
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278220r1181366_rule
+    - V-278220
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  ansible.windows.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Control\Lsa
+    value: UseMachineId
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-SO-000270 | PATCH | Windows Server 2025 must prevent NTLM from falling back to a Null session."
+  when: wn25_so_000270 | bool
+  tags:
+    - WN25-SO-000270
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278221r1181369_rule
+    - V-278221
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  ansible.windows.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0
+    value: allownullsessionfallback
+    data: 0
+    datatype: dword
+
+- name: "MEDIUM | WN25-SO-000280 | PATCH | Windows Server 2025 Must prevent PKU2U authentication using online identities."
+  when: wn25_so_000280 | bool
+  tags:
+    - WN25-SO-000280
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278222r1181372_rule
+    - V-278222
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  ansible.windows.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\pku2u
+    value: AllowOnlineID
+    data: 0
+    datatype: dword
+
+- name: "MEDIUM | WN25-SO-000290 | PATCH | Windows Server 2025 Kerberos encryption types must be configured to prevent the use of DES and RC4 encryption suites."
+  when: wn25_so_000290 | bool
+  tags:
+    - WN25-SO-000290
+    - CAT2
+    - CCI-000803
+    - SRG-OS-000120-GPOS-00061
+    - SV-278223r1181375_rule
+    - V-278223
+    - NIST800-53_IA-7
+    - NIST800-53_A_IA-7_1
+    - NIST800-53_4_IA-7
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Kerberos\Parameters
+    value: SupportedEncryptionTypes
+    data: 2147483640
+    datatype: dword
+
+- name: "MEDIUM | WN25-SO-000320 | PATCH | Windows Server 2025 must be configured to at least negotiate signing for LDAP client signing."
+  when: wn25_so_000320 | bool
+  tags:
+    - WN25-SO-000320
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278226r1181384_rule
+    - V-278226
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  ansible.windows.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Services\LDAP
+    value: LDAPClientIntegrity
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-SO-000330 | PATCH | Windows Server 2025 session security for NTLM SSP-based clients must be configured to require NTLMv2 session security and 128-bit encryption."
+  when: wn25_so_000330 | bool
+  tags:
+    - WN25-SO-000330
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278227r1181387_rule
+    - V-278227
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  ansible.windows.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0
+    value: NTLMMinClientSec
+    data: 537395200
+    datatype: dword
+
+- name: "MEDIUM | WN25-SO-000340 | PATCH | Windows Server 2025 session security for NTLM SSP-based servers must be configured to require NTLMv2 session security and 128-bit encryption."
+  when: wn25_so_000340 | bool
+  tags:
+    - WN25-SO-000340
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278228r1181390_rule
+    - V-278228
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  ansible.windows.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0
+    value: NTLMMinServerSec
+    data: 537395200
+    datatype: dword
+
+- name: "MEDIUM | WN25-SO-000350 | PATCH | Windows Server 2025 users must be required to enter a password to access private keys stored on the computer."
+  when: wn25_so_000350 | bool
+  tags:
+    - WN25-SO-000350
+    - CAT2
+    - CCI-000186
+    - SRG-OS-000067-GPOS-00035
+    - SV-278229r1181393_rule
+    - V-278229
+    - NIST800-53_IA-5_2
+    - NIST800-53_A_IA-5_1
+    - NIST800-53_4_IA-5_2_a
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Cryptography
+    value: ForceKeyProtection
+    data: 2
+    datatype: dword
+
+- name: "MEDIUM | WN25-SO-000360 | PATCH | Windows Server 2025 must be configured to use FIPS-compliant algorithms for encryption, hashing, and signing. This is NA if the host is running SharePoint"
+  when: wn25_so_000360 | bool
+  tags:
+    - WN25-SO-000360
+    - CAT2
+    - CCI-002450
+    - SRG-OS-000478-GPOS-00223
+    - SV-278230r1181396_rule
+    - V-278230
+    - NIST800-53_4_SC-13
+  ansible.windows.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\FIPSAlgorithmPolicy
+    state: present
+    value: Enabled
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-SO-000380 | PATCH | Windows Server 2025 User Account Control approval mode for the built-in Administrator must be enabled."
+  when: wn25_so_000380 | bool
+  tags:
+    - WN25-SO-000380
+    - CAT2
+    - CCI-004895
+    - SRG-OS-000373-GPOS-00156
+    - SV-278232r1182191_rule
+    - V-278232
+    - NIST800-53_4_IA-11
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System
+    value: FilterAdministratorToken
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-SO-000390 | PATCH | Windows Server 2025 UIAccess applications must not be allowed to prompt for elevation without using the secure desktop."
+  when: wn25_so_000390 | bool
+  tags:
+    - WN25-SO-000390
+    - CAT2
+    - CCI-001084
+    - SRG-OS-000134-GPOS-00068
+    - SV-278233r1182193_rule
+    - V-278233
+    - NIST800-53_SC-3
+    - NIST800-53_A_SC-3_1_ii
+    - NIST800-53_4_SC-3
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System
+    value: EnableUIADesktopToggle
+    data: 0
+    datatype: dword
+
+- name: "MEDIUM | WN25-SO-000400 | PATCH | Windows Server 2025 User Account Control must, at a minimum, prompt administrators for consent on the secure desktop."
+  when: wn25_so_000400 | bool
+  tags:
+    - WN25-SO-000400
+    - CAT2
+    - CCI-001084
+    - SRG-OS-000134-GPOS-00068
+    - SV-278234r1182195_rule
+    - V-278234
+    - NIST800-53_SC-3
+    - NIST800-53_A_SC-3_1_ii
+    - NIST800-53_4_SC-3
+  block:
+    - name: "MEDIUM | WN25-SO-000400 | PATCH | Windows Server 2025 User Account Control must, at a minimum, prompt administrators for consent on the secure desktop. | Variable Check."
+      when: win25stig_consentprompt < 1 or win25stig_consentprompt > 2
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! You have not chosen the correct setting for win25stig_consentprompt"
+          - "Please read the notes for the variable and make the necessary change to the variable to be in compliance."
+
+    - name: "MEDIUM | WN25-SO-000400 | PATCH | Windows Server 2025 User Account Control must, at a minimum, prompt administrators for consent on the secure desktop. | Warn Count."
+      when: win25stig_consentprompt < 1 or win25stig_consentprompt > 2
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-SO-000400"
+
+    - name: "MEDIUM | WN25-SO-000400 | PATCH | Windows Server 2025 User Account Control must, at a minimum, prompt administrators for consent on the secure desktop. | Apply Variable."
+      when: win25stig_consentprompt == 1 or win25stig_consentprompt == 2
+      ansible.windows.win_regedit:
+        path: HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System
+        state: present
+        value: ConsentPromptBehaviorAdmin
+        data: "{{ win25stig_consentprompt }}"
+        datatype: dword
+
+- name: "MEDIUM | WN25-SO-000410 | PATCH | Windows Server 2025 User Account Control must automatically deny standard user requests for elevation."
+  when: wn25_so_000410 | bool
+  tags:
+    - WN25-SO-000410
+    - CAT2
+    - CCI-004895
+    - SRG-OS-000373-GPOS-00156
+    - SV-278235r1182197_rule
+    - V-278235
+    - NIST800-53_4_IA-11
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System
+    state: present
+    value: ConsentPromptBehaviorUser
+    data: 0
+    datatype: dword
+
+- name: "MEDIUM | WN25-SO-000420 | PATCH | Windows Server 2025 User Account Control must be configured to detect application installations and prompt for elevation."
+  when: wn25_so_000420 | bool
+  tags:
+    - WN25-SO-000420
+    - CAT2
+    - CCI-001084
+    - SRG-OS-000134-GPOS-00068
+    - SV-278236r1182199_rule
+    - V-278236
+    - NIST800-53_SC-3
+    - NIST800-53_A_SC-3_1_ii
+    - NIST800-53_4_SC-3
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System
+    value: EnableInstallerDetection
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-SO-000430 | PATCH | Windows Server 2025 User Account Control (UAC) must only elevate UIAccess applications that are installed in secure locations."
+  when: wn25_so_000430 | bool
+  tags:
+    - WN25-SO-000430
+    - CAT2
+    - CCI-001084
+    - SRG-OS-000134-GPOS-00068
+    - SV-278237r1182201_rule
+    - V-278237
+    - NIST800-53_SC-3
+    - NIST800-53_A_SC-3_1_ii
+    - NIST800-53_4_SC-3
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System
+    value: EnableSecureUIAPaths
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-SO-000440 | PATCH | Windows Server 2025 User Account Control must run all administrators in Admin Approval Mode, enabling UAC."
+  when: wn25_so_000440 | bool
+  tags:
+    - WN25-SO-000440
+    - CAT2
+    - CCI-004895
+    - SRG-OS-000373-GPOS-00156
+    - SV-278238r1182203_rule
+    - V-278238
+    - NIST800-53_4_IA-11
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System
+    value: EnableLUA
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-SO-000450 | PATCH | Windows Server 2025 User Account Control (UAC) must virtualize file and registry write failures to per-user locations."
+  when: wn25_so_000450 | bool
+  tags:
+    - WN25-SO-000450
+    - CAT2
+    - CCI-001084
+    - SRG-OS-000134-GPOS-00068
+    - SV-278239r1182205_rule
+    - V-278239
+    - NIST800-53_SC-3
+    - NIST800-53_A_SC-3_1_ii
+    - NIST800-53_4_SC-3
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System
+    value: EnableVirtualization
+    data: 1
+    datatype: dword

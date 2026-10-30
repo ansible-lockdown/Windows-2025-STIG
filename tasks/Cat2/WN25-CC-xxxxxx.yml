@@ -1,0 +1,772 @@
+---
+
+- name: "MEDIUM | WN25-CC-000010 | PATCH | Windows Server 2025 must prevent the display of slide shows on the lock screen."
+  when: wn25_cc_000010 | bool
+  tags:
+    - WN25-CC-000010
+    - CAT2
+    - CCI-000381
+    - SRG-OS-000095-GPOS-00049
+    - SV-278080r1180946_rule
+    - V-278080
+    - NIST800-53_CM-7
+    - NIST800-53_A_CM-7_1_ii
+    - NIST800-53_4_CM-7_a
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization
+    value: NoLockScreenSlideshow
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000070 | PATCH | Windows Server 2025 insecure logons to an SMB server must be disabled."
+  when: wn25_cc_000070 | bool
+  tags:
+    - WN25-CC-000070
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278086r1180964_rule
+    - V-278086
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\LanmanWorkstation
+    value: AllowInsecureGuestAuth
+    data: 0
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000080 | PATCH | Windows Server 2025 hardened Universal Naming Convention (UNC) paths must be defined to require mutual authentication and integrity for at least the SYSVOL and NETLOGON shares."
+  when:
+    - wn25_cc_000080 | bool
+    - ansible_facts['windows_domain_member']
+  tags:
+    - WN25-CC-000080
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278087r1182272_rule
+    - V-278087
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\NetworkProvider\HardenedPaths
+    value: "{{ item }}"
+    data: RequireMutualAuthentication=1, RequireIntegrity=1
+    datatype: string
+  with_items:
+    - \\*\SYSVOL
+    - \\*\NETLOGON
+
+- name: "MEDIUM | WN25-CC-000090 | PATCH | Windows Server 2025 command line data must be included in process creation events."
+  when: wn25_cc_000090 | bool
+  tags:
+    - WN25-CC-000090
+    - CAT2
+    - CCI-000135
+    - SRG-OS-000042-GPOS-00020
+    - SV-278088r1180970_rule
+    - V-278088
+    - NIST800-53_AU-3_1
+    - NIST800-53_A_AU-3_1_1_iii
+    - NIST800-53_4_AU-3_1
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit\
+    value: ProcessCreationIncludeCmdLine_Enabled
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000100 | PATCH | Windows Server 2025 must be configured to enable Remote host allows delegation of nonexportable credentials."
+  when: wn25_cc_000100 | bool
+  tags:
+    - WN25-CC-000100
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278089r1180973_rule
+    - V-278089
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\CredentialsDelegation\
+    value: AllowProtectedCreds
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000110 | PATCH | Windows Server 2025 virtualization-based security must be enabled with the platform security level configured to Secure Boot or Secure Boot with DMA Protection."
+  when:
+    - wn25_cc_000110 | bool
+    - ansible_facts['windows_domain_member']
+  tags:
+    - WN25-CC-000110
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278090r1182274_rule
+    - V-278090
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  block:
+    - name: "MEDIUM | WN25-CC-000110 | PATCH | Windows Server 2025 virtualization-based security must be enabled with the platform security level configured to Secure Boot or Secure Boot with DMA Protection. | EnableVirtualizationBasedSecurity Registry Add"
+      ansible.windows.win_regedit:
+        path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard\
+        state: present
+        value: EnableVirtualizationBasedSecurity
+        data: 1
+        datatype: dword
+
+    - name: "MEDIUM | WN25-CC-000110 | PATCH | Windows Server 2025 virtualization-based security must be enabled with the platform security level configured to Secure Boot or Secure Boot with DMA Protection. | RequirePlatformSecurityFeatures Registry Add"
+      ansible.windows.win_regedit:
+        path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard\
+        state: present
+        value: RequirePlatformSecurityFeatures
+        data: "{{ win25stig_dma_protection }}"
+        datatype: dword
+
+    - name: "MEDIUM | WN25-CC-000110 | AUDIT | Windows Server 2025 virtualization-based security must be enabled with the platform security level configured to Secure Boot or Secure Boot with DMA Protection. | Get Status Of Device Guard Virtualization."
+      ansible.windows.win_shell: Get-CimInstance -ClassName Win32_DeviceGuard -Namespace root\Microsoft\Windows\DeviceGuard | Select-Object VirtualizationBasedSecurityStatus | ft -hidetableheaders
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_cc_000110_audit
+
+    - name: "MEDIUM | WN25-CC-000110 | AUDIT | Windows Server 2025 virtualization-based security must be enabled with the platform security level configured to Secure Boot or Secure Boot with DMA Protection. | Device Guard Virtualization based security Not Running Warning Message."
+      when: "'2' not in discovered_cc_000110_audit.stdout | trim"
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This is a manual task. Windows Server 2025 virtualization-based security must be enabled with the platform security"
+          - "level configured to Secure Boot or Secure Boot with DMA Protection. The policy settings referenced in the Fix section will"
+          - "configure the following registry values. However, due to hardware requirements, the registry values alone do not ensure proper"
+          - "function."
+
+    - name: "MEDIUM | WN25-CC-000110 | AUDIT | Windows Server 2025 virtualization-based security must be enabled with the platform security level configured to Secure Boot or Secure Boot with DMA Protection. | Warn Count"
+      when: "'2' not in discovered_cc_000110_audit.stdout | trim"
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-CC-000110"
+
+- name: "MEDIUM | WN25-CC-000130 | PATCH | Windows Server 2025 early Launch Antimalware, Boot-Start Driver Initialization Policy must prevent boot drivers identified as bad."
+  when: wn25_cc_000130 | bool
+  tags:
+    - WN25-CC-000130
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278091r1182244_rule
+    - V-278091
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  ansible.windows.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Policies\EarlyLaunch
+    state: present
+    value: DriverLoadPolicy
+    data: "{{ win25stig_driver_load_policy }}"
+    datatype: dword
+
+# XCCDF: not applicable for domain controllers.
+- name: "MEDIUM | WN25-CC-000140 | PATCH | Windows Server 2025 group policy objects must be reprocessed even if they have not changed."
+  when:
+    - wn25_cc_000140 | bool
+    - "'controller' not in ansible_facts['windows_domain_role']"
+  tags:
+    - WN25-CC-000140
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278092r1182059_rule
+    - V-278092
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\Group Policy\{35378EAC-683F-11D2-A89A-00C04FBBCFA2}
+    value: NoGPOListChanges
+    data: 0
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000150 | PATCH | Windows Server 2025 downloading print driver packages over HTTP must be turned off."
+  when: wn25_cc_000150 | bool
+  tags:
+    - WN25-CC-000150
+    - CAT2
+    - CCI-000381
+    - SRG-OS-000095-GPOS-00049
+    - SV-278093r1180985_rule
+    - V-278093
+    - NIST800-53_CM-7
+    - NIST800-53_A_CM-7_1_ii
+    - NIST800-53_4_CM-7_a
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers
+    value: DisableWebPnPDownload
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000160 | PATCH | Windows Server 2025 printing over HTTP must be turned off."
+  when: wn25_cc_000160 | bool
+  tags:
+    - WN25-CC-000160
+    - CAT2
+    - CCI-000381
+    - SRG-OS-000095-GPOS-00049
+    - SV-278094r1180988_rule
+    - V-278094
+    - NIST800-53_CM-7
+    - NIST800-53_A_CM-7_1_ii
+    - NIST800-53_4_CM-7_a
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Printers
+    value: DisableHTTPPrinting
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000170 | PATCH | Windows Server 2025 network selection user interface (UI) must not be displayed on the logon screen."
+  when: wn25_cc_000170 | bool
+  tags:
+    - WN25-CC-000170
+    - CAT2
+    - CCI-000381
+    - SRG-OS-000095-GPOS-00049
+    - SV-278095r1180991_rule
+    - V-278095
+    - NIST800-53_CM-7
+    - NIST800-53_A_CM-7_1_ii
+    - NIST800-53_4_CM-7_a
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\System
+    value: DontDisplayNetworkSelectionUI
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000180 | PATCH | Windows Server 2025 users must be prompted to authenticate when the system wakes from sleep (on battery)."
+  when: wn25_cc_000180 | bool
+  tags:
+    - WN25-CC-000180
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278096r1180994_rule
+    - V-278096
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Power\PowerSettings\0e796bdb-100d-47d6-a2d5-f7d2daa51f51
+    value: DCSettingIndex
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000190 | PATCH | Windows Server 2025 users must be prompted to authenticate when the system wakes from sleep (plugged in)."
+  when: wn25_cc_000190 | bool
+  tags:
+    - WN25-CC-000190
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278097r1180997_rule
+    - V-278097
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Power\PowerSettings\0e796bdb-100d-47d6-a2d5-f7d2daa51f51
+    value: ACSettingIndex
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000240 | PATCH | Windows Server 2025 administrator accounts must not be enumerated during elevation."
+  when: wn25_cc_000240 | bool
+  tags:
+    - WN25-CC-000240
+    - CAT2
+    - CCI-001084
+    - SRG-OS-000134-GPOS-00068
+    - SV-278102r1181012_rule
+    - V-278102
+    - NIST800-53_SC-3
+    - NIST800-53_A_SC-3_1_ii
+    - NIST800-53_4_SC-3
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\CredUI
+    value: EnumerateAdministrators
+    data: 0
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000250 | PATCH | Windows Server 2025 Telemetry must be configured to limit diagnostic data sent to Microsoft."
+  when: wn25_cc_000250 | bool
+  tags:
+    - WN25-CC-000250
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278103r1181982_rule
+    - V-278103
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection
+    value: AllowTelemetry
+    data: "{{ win25stig_allow_telemetry }}"
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000270 | PATCH | Windows Server 2025 Application event log size must be configured to 32768 KB or greater."
+  when: wn25_cc_000270 | bool
+  tags:
+    - WN25-CC-000270
+    - CAT2
+    - CCI-001849
+    - SRG-OS-000341-GPOS-00132
+    - SV-278105r1181812_rule
+    - V-278105
+    - NIST800-53_4_AU-4
+  block:
+    - name: "MEDIUM | WN25-CC-000270 | PATCH | Windows Server 2025 Application event log size must be configured to 32768 KB or greater. | Warning Message."
+      when: win25stig_application_event_log_max_size < 32768
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! You have an invalid file size set for win25stig_application_event_log_max_size please read"
+          - "the notes for the variable and make the necessary change to the variable to be in compliance."
+
+    - name: "MEDIUM | WN25-CC-000270 | PATCH | Windows Server 2025 Application event log size must be configured to 32768 KB or greater. | Warn Count."
+      when: win25stig_application_event_log_max_size < 32768
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-CC-000270"
+
+    - name: "MEDIUM | WN25-CC-000270 | PATCH | Windows Server 2025 Application event log size must be configured to 32768 KB or greater. | Apply Log Size"
+      when: win25stig_application_event_log_max_size >= 32768
+      ansible.windows.win_regedit:
+        path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Application
+        state: present
+        value: MaxSize
+        data: "{{ win25stig_application_event_log_max_size }}"
+        datatype: dword
+
+- name: "MEDIUM | WN25-CC-000280 | PATCH | Windows Server 2025 Security event log size must be configured to a value that holds at least one week of audit records."
+  when: wn25_cc_000280 | bool
+  tags:
+    - WN25-CC-000280
+    - CAT2
+    - CCI-001849
+    - SRG-OS-000341-GPOS-00132
+    - SV-278106r1211154_rule
+    - V-278106
+    - NIST800-53_4_AU-4
+  block:
+    - name: "MEDIUM | WN25-CC-000280 | AUDIT | Windows Server 2025 Security event log size must be configured to a value that holds at least one week of audit records. | Warning Message."
+      when: win25stig_security_event_log_max_size < 5120000
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! You have an invalid file size set for win25stig_security_event_log_max_size please read"
+          - "the notes for the variable and make the necessary change to the variable to be in compliance."
+
+    - name: "MEDIUM | WN25-CC-000280 | AUDIT | Windows Server 2025 Security event log size must be configured to a value that holds at least one week of audit records. | Warn Count."
+      when: win25stig_security_event_log_max_size < 5120000
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-CC-000280"
+
+    - name: "MEDIUM | WN25-CC-000280 | PATCH | Windows Server 2025 Security event log size must be configured to a value that holds at least one week of audit records. | Apply Log Size"
+      when: win25stig_security_event_log_max_size >= 5120000
+      ansible.windows.win_regedit:
+        path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\Security
+        state: present
+        value: MaxSize
+        data: "{{ win25stig_security_event_log_max_size }}"
+        datatype: dword
+
+- name: "MEDIUM | WN25-CC-000290 | PATCH | Windows Server 2025 System event log size must be configured to 32768 KB or greater."
+  when: wn25_cc_000290 | bool
+  tags:
+    - WN25-CC-000290
+    - CAT2
+    - CCI-001849
+    - SRG-OS-000341-GPOS-00132
+    - SV-278107r1181816_rule
+    - V-278107
+    - NIST800-53_4_AU-4
+  block:
+    - name: "MEDIUM | WN25-CC-000290 | AUDIT | Windows Server 2025 System event log size must be configured to 32768 KB or greater. | Warning Message."
+      when: win25stig_system_event_log_max_size < 32768
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! You have an invalid file size set for win25stig_system_event_log_max_size please read"
+          - "the notes for the variable and make the necessary change to the variable to be in compliance."
+
+    - name: "MEDIUM | WN25-CC-000290 | AUDIT | Windows Server 2025 System event log size must be configured to 32768 KB or greater. | Warn Count."
+      when: win25stig_system_event_log_max_size < 32768
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-CC-000290"
+
+    - name: "MEDIUM | WN25-CC-000290 | PATCH | Windows Server 2025 System event log size must be configured to 32768 KB or greater. | Apply Log Size"
+      when: win25stig_system_event_log_max_size >= 32768
+      ansible.windows.win_regedit:
+        path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\EventLog\System
+        state: present
+        value: MaxSize
+        data: "{{ win25stig_system_event_log_max_size }}"
+        datatype: dword
+
+- name: "MEDIUM | WN25-CC-000300 | PATCH | Windows Server 2025 Windows Defender SmartScreen must be enabled."
+  when: wn25_cc_000300 | bool
+  tags:
+    - WN25-CC-000300
+    - CAT2
+    - CCI-000381
+    - SRG-OS-000095-GPOS-00049
+    - SV-278108r1181818_rule
+    - V-278108
+    - NIST800-53_CM-7
+    - NIST800-53_A_CM-7_1_ii
+    - NIST800-53_4_CM-7_a
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\System
+    value: EnableSmartScreen
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000310 | PATCH | Windows Server 2025 Explorer Data Execution Prevention must be enabled."
+  when: wn25_cc_000310 | bool
+  tags:
+    - WN25-CC-000310
+    - CAT2
+    - CCI-002824
+    - SRG-OS-000433-GPOS-00192
+    - SV-278109r1182061_rule
+    - V-278109
+    - NIST800-53_4_SI-16
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer
+    value: NoDataExecutionPrevention
+    data: 0
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000330 | PATCH | Windows Server 2025 File Explorer shell protocol must run in protected mode."
+  when: wn25_cc_000330 | bool
+  tags:
+    - WN25-CC-000330
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278111r1182065_rule
+    - V-278111
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer
+    value: PreXPSP2ShellProtocolBehavior
+    data: 0
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000340 | PATCH | Windows Server 2025 must not save passwords in the Remote Desktop Client."
+  when: wn25_cc_000340 | bool
+  tags:
+    - WN25-CC-000340
+    - CAT2
+    - CCI-004895
+    - SRG-OS-000373-GPOS-00156
+    - SV-278112r1181042_rule
+    - V-278112
+    - NIST800-53_4_IA-11
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services
+    value: DisablePasswordSaving
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000350 | PATCH | Windows Server 2025 Remote Desktop Services must prevent drive redirection."
+  when: wn25_cc_000350 | bool
+  tags:
+    - WN25-CC-000350
+    - CAT2
+    - CCI-001090
+    - SRG-OS-000138-GPOS-00069
+    - SV-278113r1181045_rule
+    - V-278113
+    - NIST800-53_SC-4
+    - NIST800-53_A_SC-4_1
+    - NIST800-53_4_SC-4
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services
+    value: fDisableCdm
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000360 | PATCH | Windows Server 2025 remote Desktop Services must always prompt a client for passwords upon connection."
+  when: wn25_cc_000360 | bool
+  tags:
+    - WN25-CC-000360
+    - CAT2
+    - CCI-004895
+    - SRG-OS-000373-GPOS-00156
+    - SV-278114r1181048_rule
+    - V-278114
+    - NIST800-53_4_IA-11
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services
+    value: fPromptForPassword
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000370 | PATCH | Windows Server 2025 Remote Desktop Services must require secure Remote Procedure Call (RPC) communications."
+  when: wn25_cc_000370 | bool
+  tags:
+    - WN25-CC-000370
+    - CAT2
+    - CCI-000068
+    - CCI-001453
+    - SRG-OS-000033-GPOS-00014
+    - SV-278115r1181051_rule
+    - V-278115
+    - NIST800-53_AC-17
+    - NIST800-53_A_AC-17_2_1
+    - NIST800-53_4_AC-17_2
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services
+    value: fEncryptRPCTraffic
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000380 | PATCH | Windows Server 2025 remote Desktop Services must be configured with the client connection encryption set to High Level."
+  when: wn25_cc_000380 | bool
+  tags:
+    - WN25-CC-000380
+    - CAT2
+    - CCI-000068
+    - CCI-001453
+    - SRG-OS-000033-GPOS-00014
+    - SV-278116r1181054_rule
+    - V-278116
+    - NIST800-53_AC-17
+    - NIST800-53_A_AC-17_2_1
+    - NIST800-53_4_AC-17_2
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services
+    value: MinEncryptionLevel
+    data: 3
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000390 | PATCH | Windows Server 2025 must prevent attachments from being downloaded from RSS feeds."
+  when: wn25_cc_000390 | bool
+  tags:
+    - WN25-CC-000390
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278117r1181057_rule
+    - V-278117
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Internet Explorer\Feeds
+    value: DisableEnclosureDownload
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000400 | PATCH | Windows Server 2025 must disable Basic authentication for RSS feeds over HTTP."
+  when: wn25_cc_000400 | bool
+  tags:
+    - WN25-CC-000400
+    - CAT2
+    - CCI-000381
+    - SRG-OS-000095-GPOS-00049
+    - SV-278118r1182067_rule
+    - V-278118
+    - NIST800-53_CM-7
+    - NIST800-53_A_CM-7_1_ii
+    - NIST800-53_4_CM-7_a
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Internet Explorer\Feeds
+    value: AllowBasicAuthInClear
+    data: 0
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000410 | PATCH | Windows Server 2025 must prevent Indexing of encrypted files."
+  when: wn25_cc_000410 | bool
+  tags:
+    - WN25-CC-000410
+    - CAT2
+    - CCI-000381
+    - SRG-OS-000095-GPOS-00049
+    - SV-278119r1181063_rule
+    - V-278119
+    - NIST800-53_CM-7
+    - NIST800-53_A_CM-7_1_ii
+    - NIST800-53_4_CM-7_a
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search
+    value: AllowIndexingEncryptedStoresOrItems
+    data: 0
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000420 | PATCH | Windows Server 2025 must prevent users from changing installation options."
+  when: wn25_cc_000420 | bool
+  tags:
+    - WN25-CC-000420
+    - CAT2
+    - CCI-003980
+    - SRG-OS-000362-GPOS-00149
+    - SV-278120r1181066_rule
+    - V-278120
+    - NIST800-53_4_CM-11_2
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\Installer
+    value: EnableUserControl
+    data: 0
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000440 | PATCH | Windows Server 2025 users must be notified if a web-based program attempts to install software."
+  when: wn25_cc_000440 | bool
+  tags:
+    - WN25-CC-000440
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278122r1182069_rule
+    - V-278122
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\Installer
+    value: SafeForScripting
+    data: 0
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000450 | PATCH | Windows Server 2025 must disable automatically signing in the last interactive user after a system-initiated restart."
+  when: wn25_cc_000450 | bool
+  tags:
+    - WN25-CC-000450
+    - CAT2
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00229
+    - SV-278123r1181075_rule
+    - V-278123
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System
+    value: DisableAutomaticRestartSignOn
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000460 | PATCH | Windows Server 2025 PowerShell script block logging must be enabled."
+  when: wn25_cc_000460 | bool
+  tags:
+    - WN25-CC-000460
+    - CAT2
+    - CCI-000135
+    - SRG-OS-000042-GPOS-00020
+    - SV-278124r1181078_rule
+    - V-278124
+    - NIST800-53_AU-3_1
+    - NIST800-53_A_AU-3_1_1_ii
+    - NIST800-53_4_AU-3_1
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging
+    value: EnableScriptBlockLogging
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000480 | PATCH | Windows Server 2025 Windows Remote Management (WinRM) client must not allow unencrypted traffic."
+  when:
+    - wn25_cc_000480 | bool
+    - not win_skip_for_test | bool
+  tags:
+    - WN25-CC-000480
+    - CAT2
+    - CCI-002890
+    - CCI-003123
+    - SRG-OS-000393-GPOS-00173
+    - SV-278126r1181084_rule
+    - V-278126
+    - winrm
+    - NIST800-53_4_MA-4_6
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\WinRM\Client
+    value: AllowUnencryptedTraffic
+    data: 0
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000490 | PATCH | Windows Server 2025 Windows Remote Management (WinRM) client must not use Digest authentication."
+  when: wn25_cc_000490 | bool
+  tags:
+    - WN25-CC-000490
+    - CAT2
+    - CCI-000877
+    - SRG-OS-000125-GPOS-00065
+    - SV-278127r1181087_rule
+    - V-278127
+    - NIST800-53_4_MA-4_c
+    - NIST800-53_4_MA-4_1_iv
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\WinRM\Client
+    value: AllowDigest
+    data: 0
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000510 | PATCH | Windows Server 2025 Windows Remote Management (WinRM) service must not allow unencrypted traffic."
+  when:
+    - wn25_cc_000510 | bool
+    - not win_skip_for_test | bool
+  tags:
+    - WN25-CC-000510
+    - CAT2
+    - CCI-002890
+    - CCI-003123
+    - SRG-OS-000393-GPOS-00173
+    - SV-278129r1181093_rule
+    - V-278129
+    - winrm
+    - NIST800-53_4_MA-4_6
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\WinRM\Service
+    value: AllowUnencryptedTraffic
+    data: 0
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000520 | PATCH | Windows Server 2025 Windows Remote Management (WinRM) service must not store RunAs credentials."
+  when:
+    - wn25_cc_000520 | bool
+    - not win_skip_for_test | bool
+  tags:
+    - WN25-CC-000520
+    - CAT2
+    - CCI-004895
+    - SRG-OS-000373-GPOS-00156
+    - SV-278130r1181925_rule
+    - V-278130
+    - winrm
+    - NIST800-53_4_IA-11
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\WinRM\Service
+    value: DisableRunAs
+    data: 1
+    datatype: dword
+
+- name: "MEDIUM | WN25-CC-000530 | PATCH | Windows Server 2025 must have PowerShell Transcription enabled."
+  when: wn25_cc_000530 | bool
+  tags:
+    - WN25-CC-000530
+    - CAT2
+    - CCI-000213
+    - SRG-OS-000041-GPOS-00019
+    - SV-278131r1181099_rule
+    - V-278131
+    - NIST800-53_AU-3_1
+    - NIST800-53_A_AU-3_1
+    - NIST800-53_4_AU-3
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\PowerShell\Transcription\
+    value: EnableTranscripting
+    data: 1
+    datatype: dword

@@ -1,0 +1,1231 @@
+---
+
+- name: "MEDIUM | WN25-AU-000010 | AUDIT | Windows Server 2025 audit records must be backed up to a different system or media than the system being audited."
+  when: wn25_au_000010 | bool
+  tags:
+    - WN25-AU-000010
+    - CAT2
+    - CCI-001851
+    - SRG-OS-000342-GPOS-00133
+    - SV-278041r1180829_rule
+    - V-278041
+    - NIST800-53_4_AU_4_1
+  block:
+    - name: "MEDIUM | WN25-AU-000010 | AUDIT | Windows Server 2025 audit records must be backed up to a different system or media than the system being audited."
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This is a manual task. Windows Server 2025 audit records must be backed up to a"
+          - "different system or media than the system being audited. Establish and implement a process"
+          - "for backing up log data to another system or media other than the system being audited."
+
+    - name: "MEDIUM | WN25-AU-000010 | AUDIT | Windows Server 2025 audit records must be backed up to a different system or media than the system being audited. | import reusable task."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-AU-000010"
+
+- name: "MEDIUM | WN25-AU-000020 | AUDIT | Windows Server 2025 must, at a minimum, off-load audit records of interconnected systems in real time and off-load stand-alone or nondomain-joined systems weekly."
+  when: wn25_au_000020 | bool
+  tags:
+    - WN25-AU-000020
+    - CAT2
+    - CCI-001851
+    - SRG-OS-000479-GPOS-00224
+    - SV-278042r1182270_rule
+    - V-278042
+    - NIST800-53_4_AU_4_1
+  block:
+    - name: "MEDIUM | WN25-AU-000020 | AUDIT | Windows Server 2025 must, at a minimum, off-load audit records of interconnected systems in real time and off-load stand-alone or nondomain-joined systems weekly."
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This is a manual task. Windows Server 2025 must, at a minimum, offload audit"
+          - "records of interconnected systems in real time and offload standalone or nondomain-joined systems weekly."
+
+    - name: "MEDIUM | WN25-AU-000020 | AUDIT | Windows Server 2025 must, at a minimum, off-load audit records of interconnected systems in real time and off-load stand-alone or nondomain-joined systems weekly. | import reusable task."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-AU-000020"
+
+- name: "MEDIUM | WN25-AU-000030 | AUDIT | Windows Server 2025 permissions for the Application event log must prevent access by non-privileged accounts."
+  when: wn25_au_000030 | bool
+  tags:
+    - WN25-AU-000030
+    - CAT2
+    - CCI-000162
+    - CCI-000163
+    - CCI-000164
+    - SRG-OS-000057-GPOS-00027
+    - SV-278043r1180835_rule
+    - V-278043
+    - NIST800-53_AU_9
+    - NIST800-53_A_AU-9_1
+    - NIST800-53_4_AU-9
+  block:
+    - name: "MEDIUM | WN25-AU-000030 | PATCH | Windows 2025 permissions for the Application event log must prevent access by non-privileged accounts. | Get Default Log Locations."
+      ansible.windows.win_shell: Get-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\ | Select-Object File | ft -HideTableHeaders
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000030_app_log_location
+
+    - name: "MEDIUM | WN25-AU-000030 | AUDIT | Windows 2025 permissions for the Application event log must prevent access by non-privileged accounts. | Get Current Permissions For Default Application Log."
+      ansible.windows.win_shell: get-acl "{{ discovered_au_000030_app_log_location.stdout | trim }}" | FL AccessToString
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000030_app_log_permissions
+
+    - name: "MEDIUM | WN25-AU-000030 | AUDIT | Windows 2025 permissions for the Application event log must prevent access by non-privileged accounts. | Permissions warning for accounts."
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! Ensure the permissions on the Application event log (Application.evtx) are configured"
+          - "to prevent standard user accounts or groups from having access. The default permissions listed below satisfy this requirement:"
+          - "Eventlog - Full Control, SYSTEM - Full Control, Administrators - Full Control"
+          - "Current location of Application.evtx is {{ discovered_au_000030_app_log_location.stdout | trim }}"
+          - "If there is no output below If the location of the logs has been changed, when adding Eventlog to the permissions,"
+          - "it must be entered as NT Service\\Eventlog"
+          - "{{ discovered_au_000030_app_log_permissions.stdout_lines | reject('match', '^$') | list }}"
+
+    - name: "MEDIUM | WN25-AU-000030 | AUDIT | Windows 2025 permissions for the Application event log must prevent access by non-privileged accounts. | Warn Count."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-AU-000030"
+
+- name: "MEDIUM | WN25-AU-000040 | AUDIT | Windows Server 2025 permissions for the Security event log must prevent access by non-privileged accounts."
+  when: wn25_au_000040 | bool
+  tags:
+    - WN25-AU-000040
+    - CAT2
+    - CCI-000162
+    - CCI-000163
+    - CCI-000164
+    - SRG-OS-000057-GPOS-00027
+    - SV-278044r1182051_rule
+    - V-278044
+    - audit
+    - NIST800-53_AU_9
+    - NIST800-53_A_AU-9_1
+    - NIST800-53_4_AU-9
+  block:
+    - name: "MEDIUM | WN25-AU-000040 | AUDIT | Permissions for the Security event log must prevent access by non-privileged accounts. | Get Default Log Locations."
+      ansible.windows.win_shell: Get-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Security\ | Select-Object File | ft -HideTableHeaders
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000040_sec_log_location
+
+    - name: "MEDIUM | WN25-AU-000040 | AUDIT | Permissions for the Security event log must prevent access by non-privileged accounts. | Get Current Permissions For Default Security Log."
+      ansible.windows.win_shell: get-acl "{{ discovered_au_000040_sec_log_location.stdout | trim }}" | FL AccessToString
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000040_sec_log_permissions
+
+    - name: "MEDIUM | WN25-AU-000040 | AUDIT | Permissions for the Security event log must prevent access by non-privileged accounts. | Permissions warning for accounts."
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! Ensure the permissions on the Security event log (Security.evtx) are configured"
+          - "to prevent standard user accounts or groups from having access. The default permissions listed below satisfy this requirement:"
+          - "Eventlog - Full Control, SYSTEM - Full Control, Administrators - Full Control"
+          - "Current location of Security.evtx is {{ discovered_au_000040_sec_log_location.stdout | trim }}"
+          - "If there is no output below If the location of the logs has been changed, when adding Eventlog to the permissions,"
+          - "it must be entered as NT Service\\Eventlog"
+          - "{{ discovered_au_000040_sec_log_permissions.stdout_lines | reject('match', '^$') | list }}"
+
+    - name: "MEDIUM | WN25-AU-000040 | AUDIT | Windows Server 2025 permissions for the Security event log must prevent access by non-privileged accounts. | import reusable task."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-AU-000040"
+
+- name: "MEDIUM | WN25-AU-000050 | AUDIT | Windows Server 2025 permissions for the System event log must prevent access by non-privileged accounts."
+  when: wn25_au_000050 | bool
+  tags:
+    - WN25-AU-000050
+    - CAT2
+    - CCI-000162
+    - CCI-000163
+    - CCI-000164
+    - SRG-OS-000057-GPOS-00027
+    - SV-278045r1180841_rule
+    - V-278045
+    - audit
+    - NIST800-53_AU_9
+    - NIST800-53_A_AU-9_1
+    - NIST800-53_4_AU-9
+  block:
+    - name: "MEDIUM | WN25-AU-000050 | AUDIT | Permissions for the System event log must prevent access by non-privileged accounts. | Get Default Log Locations."
+      ansible.windows.win_shell: Get-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\System\ | Select-Object File | ft -HideTableHeaders
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000050_system_log_location
+
+    - name: "MEDIUM | WN25-AU-000050 | AUDIT | Permissions for the System event log must prevent access by non-privileged accounts. | Get Current Permissions For Default System Log."
+      ansible.windows.win_shell: get-acl "{{ discovered_au_000050_system_log_location.stdout | trim }}" | FL AccessToString
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000050_system_log_permissions
+
+    - name: "MEDIUM | WN25-AU-000050 | AUDIT | Permissions for the System event log must prevent access by non-privileged accounts. | Permissions warning for accounts."
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! Ensure the permissions on the System event log (System.evtx) are configured"
+          - "to prevent standard user accounts or groups from having access. The default permissions listed below satisfy this requirement:"
+          - "Eventlog - Full Control, SYSTEM - Full Control, Administrators - Full Control"
+          - "Current location of System.evtx is {{ discovered_au_000050_system_log_location.stdout | trim }}"
+          - "If there is no output below If the location of the logs has been changed, when adding Eventlog to the permissions,"
+          - "it must be entered as NT Service\\Eventlog"
+          - "{{ discovered_au_000050_system_log_permissions.stdout_lines | reject('match', '^$') | list }}"
+
+    - name: "MEDIUM | WN25-AU-000050 | AUDIT | Windows Server 2025 permissions for the System event log must prevent access by non-privileged accounts. | import reusable task."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-AU-000050"
+
+- name: "MEDIUM | WN25-AU-000060 | AUDIT | Windows Server 2025 Event Viewer must be protected from unauthorized modification and deletion."
+  when: wn25_au_000060 | bool
+  tags:
+    - WN25-AU-000060
+    - CAT2
+    - CCI-001494
+    - CCI-001495
+    - SRG-OS-000257-GPOS-00098
+    - SV-278046r1211151_rule
+    - V-278046
+    - audit
+    - NIST800-53_AU_9
+    - NIST800-53_A_AU-9_1
+    - NIST800-53_4_AU-9
+  block:
+    - name: "MEDIUM | WN25-AU-000060 | AUDIT | Event Viewer must be protected from unauthorized modification and deletion. | Get Current Permissions For Eventvwr.exe."
+      ansible.windows.win_shell: get-acl {{ item }}:\Windows\system32\Eventvwr.exe | FL AccessToString
+      changed_when: false
+      failed_when: false
+      with_items:
+        - "{{ prelim_drive_letters.stdout_lines | default([], true) }}"
+      check_mode: false
+      register: discovered_au_000060_event_viewer_permissions
+
+    - name: "MEDIUM | WN25-AU-000060 | AUDIT | Event Viewer must be protected from unauthorized modification and deletion. | Permissions warning for accounts."
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! Event Viewer must be protected from unauthorized modification and deletion."
+          - "If any groups or accounts other than TrustedInstaller have Full control or Modify permissions, this is a finding."
+          - "TrustedInstaller - Full Control, Administrators, SYSTEM, Users, ALL APPLICATION PACKAGES,"
+          - "ALL RESTRICTED APPLICATION PACKAGES - Read & Execute"
+          - "If there is no output below If the location of the logs has been changed"
+          - "The default location should be System32 folder."
+          - "{{ (discovered_au_000060_event_viewer_permissions.results | default([], true) | first | default({}, true)).stdout_lines }}"
+
+    - name: "MEDIUM | WN25-AU-000060 | AUDIT | Windows Server 2025 Event Viewer must be protected from unauthorized modification and deletion. | import reusable task."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-AU-000060"
+
+- name: "MEDIUM | WN25-AU-000070 | PATCH | Windows Server 2025 must be configured to audit Account Logon | Credential Validation successes."
+  when: wn25_au_000070 | bool
+  tags:
+    - WN25-AU-000070
+    - CAT2
+    - CCI-000172
+    - SRG-OS-000470-GPOS-00214
+    - SV-278047r1180847_rule
+    - V-278047
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+  block:
+    - name: "MEDIUM | WN25-AU-000070 | AUDIT | Windows Server 2025 must be configured to audit Account Logon | Credential Validation successes."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Credential Validation" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000070_audit
+
+    - name: "MEDIUM | WN25-AU-000070 | PATCH | Windows Server 2025 must be configured to audit Account Logon | Credential Validation successes."
+      when: "'Success' not in discovered_au_000070_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Credential Validation" /success:enable
+
+- name: "MEDIUM | WN25-AU-000080 | PATCH | Windows Server 2025 must be configured to audit Account Logon | Credential Validation failures."
+  when: wn25_au_000080 | bool
+  tags:
+    - WN25-AU-000080
+    - CAT2
+    - CCI-000172
+    - SRG-OS-000470-GPOS-00214
+    - SV-278048r1180850_rule
+    - V-278048
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+  block:
+    - name: "MEDIUM | WN25-AU-000080 | AUDIT | Windows Server 2025 must be configured to audit Account Logon | Credential Validation failures."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Credential Validation" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000080_audit
+
+    - name: "MEDIUM | WN25-AU-000080 | PATCH | Windows Server 2025 must be configured to audit Account Logon | Credential Validation failures."
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Credential Validation" /failure:enable
+      when: "'Failure' not in discovered_au_000080_audit.stdout"
+
+- name: "MEDIUM | WN25-AU-000090 | PATCH | Windows Server 2025 must be configured to audit Account Management | Other Account Management Events successes."
+  when: wn25_au_000090 | bool
+  tags:
+    - WN25-AU-000090
+    - CAT2
+    - CCI-000172
+    - CCI-002234
+    - SRG-OS-000327-GPOS-00127
+    - SV-278049r1180853_rule
+    - V-278049
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+    - NIST800-53_4_AC-6_9
+  block:
+    - name: "MEDIUM | WN25-AU-000090 | AUDIT | Windows Server 2025 must be configured to audit Account Management | Other Account Management Events successes."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Other Account Management Events" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000090_audit
+
+    - name: "MEDIUM | WN25-AU-000090 | PATCH | Windows Server 2025 must be configured to audit Account Management | Other Account Management Events successes."
+      when: "'Success' not in discovered_au_000090_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Other Account Management Events" /success:enable
+
+- name: "MEDIUM | WN25-AU-000100 | PATCH | Windows Server 2025 must be configured to audit Account Management - Security Group Management successes."
+  when: wn25_au_000100 | bool
+  tags:
+    - WN25-AU-000100
+    - CAT2
+    - CCI-000018
+    - CCI-000172
+    - CCI-001403
+    - CCI-001404
+    - CCI-001405
+    - CCI-002130
+    - SRG-OS-000004-GPOS-00004
+    - SV-278050r1180856_rule
+    - V-278050
+    - NIST800-53_AC-2_4
+    - NIST800-53_A_AC-2_4_1_i_ii
+    - NIST800-53_4_AC-2_4
+  block:
+    - name: "MEDIUM | WN25-AU-000100 | AUDIT | Windows Server 2025 must be configured to audit Account Management - Security Group Management successes."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Security Group Management" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000100_audit
+
+    - name: "MEDIUM | WN25-AU-000100 | PATCH | Windows Server 2025 must be configured to audit Account Management - Security Group Management successes."
+      when: "'Success' not in discovered_au_000100_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Security Group Management" /success:enable
+
+- name: "MEDIUM | WN25-AU-000110 | PATCH | Windows Server 2025 must be configured to audit Account Management - User Account Management successes."
+  when: wn25_au_000110 | bool
+  tags:
+    - WN25-AU-000110
+    - CAT2
+    - CCI-000018
+    - CCI-000172
+    - CCI-001403
+    - CCI-001404
+    - CCI-001405
+    - CCI-002130
+    - SRG-OS-000004-GPOS-00004
+    - SV-278051r1180859_rule
+    - V-278051
+    - audit
+    - NIST800-53_AC-2_4
+    - NIST800-53_A_AC-2_4_1_i_ii
+    - NIST800-53_4_AC-2_4
+  block:
+    - name: "MEDIUM | WN25-AU-000110 | AUDIT | Windows Server 2025 must be configured to audit Account Management - User Account Management successes."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"User Account Management" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000110_audit
+
+    - name: "MEDIUM | WN25-AU-000110 | PATCH | Windows Server 2025 must be configured to audit Account Management - User Account Management successes."
+      when: "'Success' not in discovered_au_000110_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"User Account Management" /success:enable
+
+- name: "MEDIUM | WN25-AU-000120 | PATCH | Windows Server 2025 must be configured to audit Account Management | User Account Management failures."
+  when: wn25_au_000120 | bool
+  tags:
+    - WN25-AU-000120
+    - CAT2
+    - CCI-000018
+    - CCI-000172
+    - CCI-001403
+    - CCI-001404
+    - CCI-001405
+    - CCI-002130
+    - SRG-OS-000004-GPOS-00004
+    - SV-278052r1180862_rule
+    - V-278052
+    - audit
+    - NIST800-53_AC-2_4
+    - NIST800-53_A_AC-2_4_1_i_ii
+    - NIST800-53_4_AC-2_4
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+  block:
+    - name: "MEDIUM | WN25-AU-000120 | AUDIT | Windows Server 2025 must be configured to audit Account Management | User Account Management failures."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"User Account Management" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000120_audit
+
+    - name: "MEDIUM | WN25-AU-000120 | PATCH | Windows Server 2025 must be configured to audit Account Management | User Account Management failures."
+      when: "'Failure' not in discovered_au_000120_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"User Account Management" /failure:enable
+
+- name: "MEDIUM | WN25-AU-000130 | PATCH | Windows Server 2025 must be configured to audit Detailed Tracking | Plug and Play Events successes."
+  when: wn25_au_000130 | bool
+  tags:
+    - WN25-AU-000130
+    - CAT2
+    - CCI-000172
+    - SRG-OS-000474-GPOS-00219
+    - SV-278053r1180865_rule
+    - V-278053
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+  block:
+    - name: "MEDIUM | WN25-AU-000130 | AUDIT | Windows Server 2025 must be configured to audit Detailed Tracking | Plug and Play Events successes."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Plug and Play Events" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000130_audit
+
+    - name: "MEDIUM | WN25-AU-000130 | PATCH | Windows Server 2025 must be configured to audit Detailed Tracking | Plug and Play Events successes."
+      when: "'Success' not in discovered_au_000130_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Plug and Play Events" /success:enable
+
+- name: "MEDIUM | WN25-AU-000140 | PATCH | Windows Server 2025 must be configured to audit Detailed Tracking | Process Creation successes."
+  when: wn25_au_000140 | bool
+  tags:
+    - WN25-AU-000140
+    - CAT2
+    - CCI-000172
+    - CCI-002234
+    - SRG-OS-000327-GPOS-00127
+    - SV-278054r1180868_rule
+    - V-278054
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+    - NIST800-53_4_AC-6_9
+  block:
+    - name: "MEDIUM | WN25-AU-000140 | AUDIT | Windows Server 2025 must be configured to audit Detailed Tracking | Process Creation successes."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Process Creation" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000140_audit
+
+    - name: "MEDIUM | WN25-AU-000140 | PATCH | Windows Server 2025 must be configured to audit Detailed Tracking | Process Creation successes."
+      when: "'Success' not in discovered_au_000140_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Process Creation" /success:enable
+
+- name: "MEDIUM | WN25-AU-000150 | PATCH | Windows Server 2025 must be configured to audit Logon/Logoff - Account Lockout successes."
+  when: wn25_au_000150 | bool
+  tags:
+    - WN25-AU-000150
+    - CAT2
+    - CCI-000172
+    - CCI-001404
+    - SRG-OS-000240-GPOS-00090
+    - SV-278055r1180871_rule
+    - V-278055
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+  block:
+    - name: "MEDIUM | WN25-AU-000150 | AUDIT | Windows Server 2025 must be configured to audit Logon/Logoff - Account Lockout successes."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Account Lockout" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000150_audit
+
+    - name: "MEDIUM | WN25-AU-000150 | PATCH | Windows Server 2025 must be configured to audit Logon/Logoff - Account Lockout successes."
+      when: "'Success' not in discovered_au_000150_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Account Lockout" /success:enable
+
+- name: "MEDIUM | WN25-AU-000160 | PATCH | Windows Server 2025 must be configured to audit Logon/Logoff - Account Lockout failures."
+  when: wn25_au_000160 | bool
+  tags:
+    - WN25-AU-000160
+    - CAT2
+    - CCI-000172
+    - CCI-001404
+    - SRG-OS-000240-GPOS-00090
+    - SV-278056r1180874_rule
+    - V-278056
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+    - NIST800-53_AC-2_4
+    - NIST800-53_A_AC-2_4_1_i_ii
+    - NIST800-53_4_AC-2_4
+  block:
+    - name: "MEDIUM | WN25-AU-000160 | AUDIT | Windows Server 2025 must be configured to audit Logon/Logoff | Account Lockout failures."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Account Lockout" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000160_audit
+
+    - name: "MEDIUM | WN25-AU-000160 | PATCH | Windows Server 2025 must be configured to audit Logon/Logoff | Account Lockout failures."
+      when: "'Failure' not in discovered_au_000160_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Account Lockout" /failure:enable
+
+- name: "MEDIUM | WN25-AU-000170 | PATCH | Windows Server 2025 must be configured to audit Logon/Logoff | Group Membership successes."
+  when: wn25_au_000170 | bool
+  tags:
+    - WN25-AU-000170
+    - CAT2
+    - CCI-000172
+    - SRG-OS-000470-GPOS-00214
+    - SV-278057r1180877_rule
+    - V-278057
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12
+  block:
+    - name: "MEDIUM | WN25-AU-000170 | AUDIT | Windows Server 2025 must be configured to audit Logon/Logoff | Group Membership successes."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Group Membership" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000170_audit
+
+    - name: "MEDIUM | WN25-AU-000170 | PATCH | Windows Server 2025 must be configured to audit Logon/Logoff | Group Membership successes."
+      when: "'Success' not in discovered_au_000170_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Group Membership" /success:enable
+
+- name: "MEDIUM | WN25-AU-000180 | PATCH | Windows Server 2025 must be configured to audit logoff successes."
+  when: wn25_au_000180 | bool
+  tags:
+    - WN25-AU-000180
+    - CAT2
+    - CCI-000172
+    - SRG-OS-000472-GPOS-00217
+    - SV-278058r1180880_rule
+    - V-278058
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12
+  block:
+    - name: "MEDIUM | WN25-AU-000180 | AUDIT | Windows Server 2025 must be configured to audit logoff successes."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Logoff" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000180_audit
+
+    - name: "MEDIUM | WN25-AU-000180 | PATCH | Windows Server 2025 must be configured to audit logoff successes."
+      when: "'Success' not in discovered_au_000180_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Logoff" /success:enable
+
+- name: "MEDIUM | WN25-AU-000190 | PATCH | Windows Server 2025 must be configured to audit logon successes."
+  when: wn25_au_000190 | bool
+  tags:
+    - WN25-AU-000190
+    - CAT2
+    - CCI-000067
+    - CCI-000172
+    - SRG-OS-000032-GPOS-00013
+    - SV-278059r1180883_rule
+    - V-278059
+    - audit
+    - NIST800-53_AC-17_1
+    - NIST800-53_A_AC-17_1_1
+    - NIST800-53_4_AC-17_1
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12
+  block:
+    - name: "MEDIUM | WN25-AU-000190 | AUDIT | Windows Server 2025 must be configured to audit logon successes."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Logon" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000190_audit
+
+    - name: "MEDIUM | WN25-AU-000190 | PATCH | Windows Server 2025 must be configured to audit logon successes."
+      when: "'Success' not in discovered_au_000190_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Logon" /success:enable
+
+- name: "MEDIUM | WN25-AU-000200 | PATCH | Windows Server 2025 must be configured to audit logon failures"
+  when: wn25_au_000200 | bool
+  tags:
+    - WN25-AU-000200
+    - CAT2
+    - CCI-000067
+    - CCI-000172
+    - SRG-OS-000032-GPOS-00013
+    - SV-278060r1180886_rule
+    - V-278060
+    - audit
+    - NIST800-53_AC-17_1
+    - NIST800-53_A_AC-17_1_1
+    - NIST800-53_4_AC-17_1
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12
+  block:
+    - name: "MEDIUM | WN25-AU-000200 | AUDIT | Windows Server 2025 must be configured to audit logon failures"
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Logon" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000200_audit
+
+    - name: "MEDIUM | WN25-AU-000200 | PATCH | Windows Server 2025 must be configured to audit logon failures"
+      when: "'Failure' not in discovered_au_000200_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Logon" /failure:enable
+
+- name: "MEDIUM | WN25-AU-000210 | PATCH | Windows Server 2025 must be configured to audit Logon/Logoff | Special Logon successes."
+  when: wn25_au_000210 | bool
+  tags:
+    - WN25-AU-000210
+    - CAT2
+    - CCI-000172
+    - SRG-OS-000470-GPOS-00214
+    - SV-278061r1180889_rule
+    - V-278061
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12
+  block:
+    - name: "MEDIUM | WN25-AU-000210 | AUDIT | Windows Server 2025 must be configured to audit Logon/Logoff | Special Logon successes."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Special Logon" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000210_audit
+
+    - name: "MEDIUM | WN25-AU-000210 | PATCH | Windows Server 2025 must be configured to audit Logon/Logoff | Special Logon successes."
+      when: "'Success' not in discovered_au_000210_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Special Logon" /success:enable
+
+- name: "MEDIUM | WN25-AU-000220 | PATCH | Windows Server 2025 must be configured to audit Object Access - Other Object Access Events successes."
+  when: wn25_au_000220 | bool
+  tags:
+    - WN25-AU-000220
+    - CAT2
+    - CCI-000172
+    - SRG-OS-000470-GPOS-00214
+    - SV-278062r1180892_rule
+    - V-278062
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12
+  block:
+    - name: "MEDIUM | WN25-AU-000220 | AUDIT | Windows Server 2025 must be configured to audit Object Access - Other Object Access Events successes."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Other Object Access Events" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000220_audit
+
+    - name: "MEDIUM | WN25-AU-000220 | PATCH | Windows Server 2025 must be configured to audit Object Access - Other Object Access Events successes."
+      when: "'Success' not in discovered_au_000220_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Other Object Access Events" /success:enable
+
+- name: "MEDIUM | WN25-AU-000230 | PATCH | Windows Server 2025 must be configured to audit Object Access - Other Object Access Events failures."
+  when: wn25_au_000230 | bool
+  tags:
+    - WN25-AU-000230
+    - CAT2
+    - CCI-000172
+    - SRG-OS-000470-GPOS-00214
+    - SV-278063r1180895_rule
+    - V-278063
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12
+  block:
+    - name: "MEDIUM | WN25-AU-000230 | AUDIT | Windows Server 2025 must be configured to audit Object Access - Other Object Access Events failures."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Other Object Access Events" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000230_audit
+
+    - name: "MEDIUM | WN25-AU-000230 | PATCH | Windows Server 2025 must be configured to audit Object Access - Other Object Access Events failures."
+      when: "'Failure' not in discovered_au_000230_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Other Object Access Events" /failure:enable
+
+- name: "MEDIUM | WN25-AU-000240 | PATCH | Windows Server 2025 must be configured to audit Object Access | Removable Storage successes."
+  when: wn25_au_000240 | bool
+  tags:
+    - WN25-AU-000240
+    - CAT2
+    - CCI-000172
+    - SRG-OS-000474-GPOS-00219
+    - SV-278064r1180898_rule
+    - V-278064
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+  block:
+    - name: "MEDIUM | WN25-AU-000240 | AUDIT | Windows Server 2025 must be configured to audit Object Access | Removable Storage successes."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Removable Storage" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000240_audit
+
+    - name: "MEDIUM | WN25-AU-000240 | PATCH | Windows Server 2025 must be configured to audit Object Access | Removable Storage successes."
+      when: "'Success' not in discovered_au_000240_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Removable Storage" /success:enable
+
+- name: "MEDIUM | WN25-AU-000250 | PATCH | Windows Server 2025 must be configured to audit Object Access | Removable Storage failures."
+  when: wn25_au_000250 | bool
+  tags:
+    - WN25-AU-000250
+    - CAT2
+    - CCI-000172
+    - SRG-OS-000474-GPOS-00219
+    - SV-278065r1180901_rule
+    - V-278065
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+  block:
+    - name: "MEDIUM | WN25-AU-000250 | AUDIT | Windows Server 2025 must be configured to audit Object Access | Removable Storage failures."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Removable Storage" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000250_audit
+
+    - name: "MEDIUM | WN25-AU-000250 | PATCH | Windows Server 2025 must be configured to audit Object Access | Removable Storage failures."
+      when: "'Failure' not in discovered_au_000250_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Removable Storage" /failure:enable
+
+- name: "MEDIUM | WN25-AU-000260 | PATCH | Windows Server 2025 must be configured to audit Policy Change | Audit Policy Change successes."
+  when: wn25_au_000260 | bool
+  tags:
+    - WN25-AU-000260
+    - CAT2
+    - CCI-000172
+    - CCI-002234
+    - SRG-OS-000327-GPOS-00127
+    - SV-278066r1180904_rule
+    - V-278066
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+    - NIST800-53_4_AC-6_9
+  block:
+    - name: "MEDIUM | WN25-AU-000260 | AUDIT | Windows Server 2025 must be configured to audit Policy Change | Audit Policy Change successes."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Audit Policy Change" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000260_audit
+
+    - name: "MEDIUM | WN25-AU-000260 | PATCH | Windows Server 2025 must be configured to audit Policy Change | Audit Policy Change successes."
+      when: "'Success' not in discovered_au_000260_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Audit Policy Change" /success:enable
+
+- name: "MEDIUM | WN25-AU-000270 | PATCH | Windows Server 2025 must be configured to audit Policy Change | Audit Policy Change failures."
+  when: wn25_au_000270 | bool
+  tags:
+    - WN25-AU-000270
+    - CAT2
+    - CCI-000172
+    - CCI-002234
+    - SRG-OS-000327-GPOS-00127
+    - SV-278067r1180907_rule
+    - V-278067
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+    - NIST800-53_4_AC-6_9
+  block:
+    - name: "MEDIUM | WN25-AU-000270 | AUDIT | Windows Server 2025 must be configured to audit Policy Change | Audit Policy Change failures."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Audit Policy Change" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000270_audit
+
+    - name: "MEDIUM | WN25-AU-000270 | PATCH | Windows Server 2025 must be configured to audit Policy Change | Audit Policy Change failures."
+      when: "'Failure' not in discovered_au_000270_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Audit Policy Change" /failure:enable
+
+- name: "MEDIUM | WN25-AU-000280 | PATCH | Windows Server 2025 must be configured to audit Policy Change | Authentication Policy Change successes."
+  when: wn25_au_000280 | bool
+  tags:
+    - WN25-AU-000280
+    - CAT2
+    - CCI-000172
+    - CCI-002234
+    - SRG-OS-000327-GPOS-00127
+    - SV-278068r1180910_rule
+    - V-278068
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+    - NIST800-53_4_AC-6_9
+  block:
+    - name: "MEDIUM | WN25-AU-000280 | AUDIT | Windows Server 2025 must be configured to audit Policy Change | Authentication Policy Change successes."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Authentication Policy Change" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000280_audit
+
+    - name: "MEDIUM | WN25-AU-000280 | PATCH | Windows Server 2025 must be configured to audit Policy Change | Authentication Policy Change successes."
+      when: "'Success' not in discovered_au_000280_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Authentication Policy Change" /success:enable
+
+- name: "MEDIUM | WN25-AU-000281 | PATCH | Windows Server 2025 must be configured to audit Policy Change - Authorization Policy Change successes."
+  when: wn25_au_000281 | bool
+  tags:
+    - WN25-AU-000281
+    - CAT2
+    - CCI-000172
+    - CCI-002234
+    - SRG-OS-000327-GPOS-00127
+    - SV-278069r1180913_rule
+    - V-278069
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+  block:
+    - name: "MEDIUM | WN25-AU-000281 | AUDIT | Windows Server 2025 must be configured to audit Policy Change - Authorization Policy Change successes."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Authorization Policy Change" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000281_audit
+
+    - name: "MEDIUM | WN25-AU-000281 | PATCH | Windows Server 2025 must be configured to audit Policy Change - Authorization Policy Change successes."
+      when: "'Success' not in discovered_au_000281_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Authorization Policy Change" /success:enable
+
+- name: "MEDIUM | WN25-AU-000300 | PATCH | Windows Server 2025 must be configured to audit Privilege Use | Sensitive Privilege Use successes."
+  when: wn25_au_000300 | bool
+  tags:
+    - WN25-AU-000300
+    - CAT2
+    - CCI-000172
+    - CCI-002234
+    - CCI-004188
+    - SRG-OS-000327-GPOS-00127
+    - SV-278070r1180916_rule
+    - V-278070
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+    - NIST800-53_4_AC-6_9
+  block:
+    - name: "MEDIUM | WN25-AU-000300 | AUDIT | Windows Server 2025 must be configured to audit Privilege Use | Sensitive Privilege Use successes."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Sensitive Privilege Use" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000300_audit
+
+    - name: "MEDIUM | WN25-AU-000300 | PATCH | Windows Server 2025 must be configured to audit Privilege Use | Sensitive Privilege Use successes."
+      when: "'Success' not in discovered_au_000300_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Sensitive Privilege Use" /success:enable
+
+- name: "MEDIUM | WN25-AU-000310 | PATCH | Windows Server 2025 must be configured to audit Privilege Use | Sensitive Privilege Use failures."
+  when: wn25_au_000310 | bool
+  tags:
+    - WN25-AU-000310
+    - CAT2
+    - CCI-000172
+    - CCI-002234
+    - CCI-004188
+    - SRG-OS-000327-GPOS-00127
+    - SV-278071r1180919_rule
+    - V-278071
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+    - NIST800-53_4_AC-6_9
+  block:
+    - name: "MEDIUM | WN25-AU-000310 | AUDIT | Windows Server 2025 must be configured to audit Privilege Use | Sensitive Privilege Use failures."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Sensitive Privilege Use" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000310_audit
+
+    - name: "MEDIUM | WN25-AU-000310 | PATCH | Windows Server 2025 must be configured to audit Privilege Use | Sensitive Privilege Use failures."
+      when: "'Failure' not in discovered_au_000310_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Sensitive Privilege Use" /failure:enable
+
+- name: "MEDIUM | WN25-AU-000320 | PATCH | Windows Server 2025 must be configured to audit System | IPsec Driver successes."
+  when: wn25_au_000320 | bool
+  tags:
+    - WN25-AU-000320
+    - CAT2
+    - CCI-000172
+    - CCI-002234
+    - SRG-OS-000327-GPOS-00127
+    - SV-278072r1180922_rule
+    - V-278072
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+    - NIST800-53_4_AC-6_9
+  block:
+    - name: "MEDIUM | WN25-AU-000320 | AUDIT | Windows Server 2025 must be configured to audit System | IPsec Driver successes."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"IPsec Driver" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000320_audit
+
+    - name: "MEDIUM | WN25-AU-000320 | PATCH | Windows Server 2025 must be configured to audit System | IPsec Driver successes."
+      when: "'Success' not in discovered_au_000320_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"IPsec Driver" /success:enable
+
+- name: "MEDIUM | WN25-AU-000330 | PATCH | Windows Server 2025 must be configured to audit System | IPsec Driver failures."
+  when: wn25_au_000330 | bool
+  tags:
+    - WN25-AU-000330
+    - CAT2
+    - CCI-000172
+    - CCI-002234
+    - SRG-OS-000327-GPOS-00127
+    - SV-278073r1180925_rule
+    - V-278073
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+    - NIST800-53_4_AC-6_9
+  block:
+    - name: "MEDIUM | WN25-AU-000330 | AUDIT | Windows Server 2025 must be configured to audit System | IPsec Driver failures."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"IPsec Driver" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000330_audit
+
+    - name: "MEDIUM | WN25-AU-000330 | PATCH | Windows Server 2025 must be configured to audit System | IPsec Driver failures."
+      when: "'Failure' not in discovered_au_000330_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"IPsec Driver" /failure:enable
+
+- name: "MEDIUM | WN25-AU-000340 | PATCH | Windows Server 2025 must be configured to audit System | Other System Events successes."
+  when: wn25_au_000340 | bool
+  tags:
+    - WN25-AU-000340
+    - CAT2
+    - CCI-000172
+    - CCI-002234
+    - SRG-OS-000327-GPOS-00127
+    - SV-278074r1180928_rule
+    - V-278074
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+    - NIST800-53_4_AC-6_9
+  block:
+    - name: "MEDIUM | WN25-AU-000340 | AUDIT | Windows Server 2025 must be configured to audit System | Other System Events successes."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Other System Events" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000340_audit
+
+    - name: "MEDIUM | WN25-AU-000340 | PATCH | Windows Server 2025 must be configured to audit System | Other System Events successes."
+      when: "'Success' not in discovered_au_000340_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Other System Events" /success:enable
+
+- name: "MEDIUM | WN25-AU-000350 | PATCH | Windows Server 2025 must be configured to audit System | Other System Events failures."
+  when: wn25_au_000350 | bool
+  tags:
+    - WN25-AU-000350
+    - CAT2
+    - CCI-000172
+    - CCI-002234
+    - SRG-OS-000327-GPOS-00127
+    - SV-278075r1180931_rule
+    - V-278075
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+    - NIST800-53_4_AC-6_9
+  block:
+    - name: "MEDIUM | WN25-AU-000350 | AUDIT | Windows Server 2025 must be configured to audit System | Other System Events failures."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Other System Events" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000350_audit
+
+    - name: "MEDIUM | WN25-AU-000350 | PATCH | Windows Server 2025 must be configured to audit System | Other System Events failures."
+      when: "'Failure' not in discovered_au_000350_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Other System Events" /failure:enable
+
+- name: "MEDIUM | WN25-AU-000360 | PATCH | Windows Server 2025 must be configured to audit System | Security State Change successes."
+  when: wn25_au_000360 | bool
+  tags:
+    - WN25-AU-000360
+    - CAT2
+    - CCI-000172
+    - CCI-002234
+    - SRG-OS-000327-GPOS-00127
+    - SV-278076r1180934_rule
+    - V-278076
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+    - NIST800-53_4_AC-6_9
+  block:
+    - name: "MEDIUM | WN25-AU-000360 | AUDIT | Windows Server 2025 must be configured to audit System | Security State Change successes."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Security State Change" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000360_audit
+
+    - name: "MEDIUM | WN25-AU-000360 | PATCH | Windows Server 2025 must be configured to audit System | Security State Change successes."
+      when: "'Success' not in discovered_au_000360_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Security State Change" /success:enable
+
+- name: "MEDIUM | WN25-AU-000370 | PATCH | Windows Server 2025 must be configured to audit System | Security System Extension successes."
+  when: wn25_au_000370 | bool
+  tags:
+    - WN25-AU-000370
+    - SRG-OS-000327-GPOS-00127
+    - SV-278077r1180937_rule
+    - V-278077
+    - CCI-000172
+    - CCI-002234
+    - CAT2
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+    - NIST800-53_4_AC-6_9
+  block:
+    - name: "MEDIUM | WN25-AU-000370 | AUDIT | Must be configured to audit System - Security System Extension successes."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Security System Extension" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000370_audit
+
+    - name: "MEDIUM | WN25-AU-000370 | PATCH | Must be configured to audit System | Security System Extension successes."
+      when: "'Success' not in discovered_au_000370_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Security System Extension" /success:enable
+
+- name: "MEDIUM | WN25-AU-000380 | PATCH | Windows Server 2025 must be configured to audit System | System Integrity successes."
+  when: wn25_au_000380 | bool
+  tags:
+    - WN25-AU-000380
+    - CAT2
+    - CCI-000172
+    - CCI-002234
+    - SRG-OS-000327-GPOS-00127
+    - SV-278078r1180940_rule
+    - V-278078
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+    - NIST800-53_4_AC-6_9
+  block:
+    - name: "MEDIUM | WN25-AU-000380 | AUDIT | Windows Server 2025 must be configured to audit System | System Integrity successes."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"System Integrity" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000380_audit
+
+    - name: "MEDIUM | WN25-AU-000380 | PATCH | Windows Server 2025 must be configured to audit System | System Integrity successes."
+      when: "'Success' not in discovered_au_000380_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"System Integrity" /success:enable
+
+- name: "MEDIUM | WN25-AU-000390 | PATCH | Windows Server 2025 must be configured to audit System | System Integrity failures."
+  when: wn25_au_000390 | bool
+  tags:
+    - WN25-AU-000390
+    - CAT2
+    - CCI-000172
+    - CCI-002234
+    - SRG-OS-000327-GPOS-00127
+    - SV-278079r1180943_rule
+    - V-278079
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+    - NIST800-53_4_AC-6_9
+  block:
+    - name: "MEDIUM | WN25-AU-000390 | AUDIT | Windows Server 2025 must be configured to audit System | System Integrity failures."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"System Integrity" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000390_audit
+
+    - name: "MEDIUM | WN25-AU-000390 | PATCH | Windows Server 2025 must be configured to audit System | System Integrity failures."
+      when: "'Failure' not in discovered_au_000390_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"System Integrity" /failure:enable
+
+- name: "MEDIUM | WN25-AU-000583 | PATCH | Windows Server 2025 must be configured to audit Object Access | Handle Manipulation failures."
+  when: wn25_au_000583 | bool
+  tags:
+    - WN25-AU-000583
+    - CAT2
+    - CCI-000172
+    - SRG-OS-000062-GPOS-00031
+    - SV-279918r1181960_rule
+    - V-279918
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+  block:
+    - name: "MEDIUM | WN25-AU-000583 | AUDIT | Windows Server 2025 must be configured to audit Object Access | Handle Manipulation failures."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Handle Manipulation" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000583_audit
+
+    - name: "MEDIUM | WN25-AU-000583 | PATCH | Windows Server 2025 must be configured to audit Object Access | Handle Manipulation failures."
+      when: "'Failure' not in discovered_au_000583_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Handle Manipulation" /failure:enable
+
+- name: "MEDIUM | WN25-AU-000585 | PATCH | Windows Server 2025 must be configured to audit Object Access | Registry failures."
+  when: wn25_au_000585 | bool
+  tags:
+    - WN25-AU-000585
+    - CAT2
+    - CCI-000172
+    - SRG-OS-000062-GPOS-00031
+    - SV-279920r1181966_rule
+    - V-279920
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+  block:
+    - name: "MEDIUM | WN25-AU-000585 | AUDIT | Windows Server 2025 must be configured to audit Object Access | Registry failures."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Registry" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000585_audit
+
+    - name: "MEDIUM | WN25-AU-000585 | PATCH | Windows Server 2025 must be configured to audit Object Access | Registry failures."
+      when: "'Failure' not in discovered_au_000585_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Registry" /failure:enable
+
+- name: "MEDIUM | WN25-AU-000586 | PATCH | Windows Server 2025 must be configured to audit Object Access | Registry successes."
+  when: wn25_au_000586 | bool
+  tags:
+    - WN25-AU-000586
+    - CAT2
+    - CCI-000172
+    - SRG-OS-000062-GPOS-00031
+    - SV-279921r1181969_rule
+    - V-279921
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+  block:
+    - name: "MEDIUM | WN25-AU-000586 | AUDIT | Windows Server 2025 must be configured to audit Object Access | Registry successes."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Registry" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000586_audit
+
+    - name: "MEDIUM | WN25-AU-000586 | PATCH | Windows Server 2025 must be configured to audit Object Access | Registry successes."
+      when: "'Success' not in discovered_au_000586_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Registry" /success:enable
+
+- name: "MEDIUM | WN25-AU-000587 | PATCH | Windows Server 2025 must be configured to audit Privilege Use | Sensitive Privilege Use successes."
+  when: wn25_au_000587 | bool
+  tags:
+    - WN25-AU-000587
+    - CAT2
+    - CCI-000172
+    - SRG-OS-000062-GPOS-00031
+    - SV-279922r1181972_rule
+    - V-279922
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+  block:
+    - name: "MEDIUM | WN25-AU-000587 | AUDIT | Windows Server 2025 must be configured to audit Privilege Use | Sensitive Privilege Use successes."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Sensitive Privilege Use" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000587_audit
+
+    - name: "MEDIUM | WN25-AU-000587 | PATCH | Windows Server 2025 must be configured to audit Privilege Use | Sensitive Privilege Use successes."
+      when: "'Success' not in discovered_au_000587_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Sensitive Privilege Use" /success:enable
+
+- name: "MEDIUM | WN25-AU-000588 | PATCH | Windows Server 2025 must be configured to audit Privilege Use | Sensitive Privilege Use failures."
+  when: wn25_au_000588 | bool
+  tags:
+    - WN25-AU-000588
+    - CAT2
+    - CCI-000172
+    - SRG-OS-000062-GPOS-00031
+    - SV-279923r1181975_rule
+    - V-279923
+    - audit
+    - NIST800-53_AU_12_c
+    - NIST800-53_A_AU-12_1_iv
+    - NIST800-53_4_AU-12_c
+  block:
+    - name: "MEDIUM | WN25-AU-000588 | AUDIT | Windows Server 2025 must be configured to audit Privilege Use | Sensitive Privilege Use failures."
+      ansible.windows.win_shell: AuditPol /get /subcategory:"Sensitive Privilege Use" -r | ConvertFrom-Csv | Select-Object -expand "Inclusion Setting"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_au_000588_audit
+
+    - name: "MEDIUM | WN25-AU-000588 | PATCH | Windows Server 2025 must be configured to audit Privilege Use | Sensitive Privilege Use failures."
+      when: "'Failure' not in discovered_au_000588_audit.stdout"
+      ansible.windows.win_shell: AuditPol /set /subcategory:"Sensitive Privilege Use" /failure:enable

@@ -1,0 +1,112 @@
+---
+
+- name: "HIGH | WN25-SO-000020 | PATCH | Windows Server 2025 must prevent local accounts with blank passwords from being used from the network."
+  when: wn25_so_000020 | bool
+  tags:
+    - WN25-SO-000020
+    - CAT1
+    - CCI-000366
+    - SV-278196r1181294_rule
+    - V-278196
+    - SRG-OS-000480-GPOS-00227
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  ansible.windows.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Control\Lsa
+    value: LimitBlankPasswordUse
+    data: 1
+    datatype: dword
+
+- name: "HIGH | WN25-SO-000210 | PATCH | Windows Server 2025 must not allow anonymous SID/Name translation."
+  when:
+    - wn25_so_000210 | bool
+    - not discovered_account_policy_is_domain_scoped | bool
+  tags:
+    - WN25-SO-000210
+    - CAT1
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278215r1181351_rule
+    - V-278215
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  community.windows.win_security_policy:
+    section: System Access
+    key: LSAAnonymousNameLookup
+    value: 0
+
+- name: "HIGH | WN25-SO-000220 | PATCH | Windows Server 2025 must not allow anonymous enumeration of Security Account Manager (SAM) accounts."
+  when:
+    - wn25_so_000220 | bool
+    - "'controller' not in ansible_facts['windows_domain_role']"
+  tags:
+    - WN25-SO-000220
+    - CAT1
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278216r1181354_rule
+    - V-278216
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  ansible.windows.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Control\Lsa
+    value: RestrictAnonymousSAM
+    data: 1
+    datatype: dword
+
+- name: "HIGH | WN25-SO-000230 | PATCH | Windows Server 2025 must not allow anonymous enumeration of shares."
+  when: wn25_so_000230 | bool
+  tags:
+    - WN25-SO-000230
+    - CAT1
+    - CCI-001090
+    - SRG-OS-000138-GPOS-00069
+    - SV-278217r1181357_rule
+    - V-278217
+    - NIST800-53_SC-4
+    - NIST800-53_A_SC-4_1
+    - NIST800-53_4_SC-4
+  ansible.windows.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Control\Lsa
+    value: RestrictAnonymous
+    data: 1
+    datatype: dword
+
+- name: "HIGH | WN25-SO-000250 | PATCH | Windows Server 2025 must restrict anonymous access to Named Pipes and Shares."
+  when: wn25_so_000250 | bool
+  tags:
+    - WN25-SO-000250
+    - CAT1
+    - CCI-001090
+    - SRG-OS-000138-GPOS-00069
+    - SV-278219r1181363_rule
+    - V-278219
+    - NIST800-53_SC-4
+    - NIST800-53_A_SC-4_1
+    - NIST800-53_4_SC-4
+  ansible.windows.win_regedit:
+    path: HKLM:\System\CurrentControlSet\Services\LanManServer\Parameters
+    value: restrictnullsessaccess
+    data: 1
+    datatype: dword
+
+- name: "HIGH | WN25-SO-000310 | PATCH | Windows Server 2025 LAN Manager authentication level must be configured to send NTLMv2 response only and to refuse LM and NTLM."
+  when: wn25_so_000310 | bool
+  tags:
+    - WN25-SO-000310
+    - CAT1
+    - CCI-000366
+    - SRG-OS-000480-GPOS-00227
+    - SV-278225r1182320_rule
+    - V-278225
+    - NIST800-53_CM-6_b
+    - NIST800-53_A_CM-6_1_iv
+    - NIST800-53_4_CM-6_b
+  ansible.windows.win_regedit:
+    path: HKLM:\System\CurrentControlSet\Control\Lsa
+    value: LmCompatibilityLevel
+    data: 5
+    datatype: dword

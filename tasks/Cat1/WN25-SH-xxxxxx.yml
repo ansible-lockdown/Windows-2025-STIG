@@ -1,0 +1,35 @@
+---
+
+# The SH band is new in the Windows Server 2025 STIG and hardens Windows OpenSSH.
+# Every control here edits $env:ProgramData\ssh\sshd_config and is gated on
+# prelim_openssh_configured, so it is inert rather than failing on a host where OpenSSH has
+# never started and therefore has no sshd_config.
+# WN25-SH-000010 in Cat2 is the only control that may install OpenSSH, and it is opt-in.
+#
+# ORDERING CAVEAT: Cat1 runs before Cat2, so on a host where this same run installs OpenSSH for
+# the first time, sshd_config does not yet exist when this control is evaluated and it skips.
+# Re-run the role to apply it. On a host that already has OpenSSH configured, it applies normally.
+
+# Renders the same templates/sshd_config.j2 the CAT II controls deploy. Every directive in that
+# template is gated on its own toggle, so this render and the CAT II one produce an identical
+# file. Deploying it here as well means a --tags CAT1 run still hardens sshd_config, which it
+# would not if the only deployment lived in Cat2.
+- name: "HIGH | WN25-SH-000040 | PATCH | Windows Server 2025 OpenSSH must not allow blank passwords."
+  when:
+    - wn25_sh_000040 | bool
+    - prelim_openssh_configured
+  tags:
+    - WN25-SH-000040
+    - CAT1
+    - CCI-000766
+    - SRG-OS-000106-GPOS-00053
+    - SV-285316r1211176_rule
+    - V-285316
+    - ssh
+    - NIST800-53_IA-2_2
+    - NIST800-53_A_IA-2_2
+    - NIST800-53_4_IA-2_2
+  ansible.windows.win_template:
+    src: sshd_config.j2
+    dest: "{{ win25stig_sshd_config_path }}"
+  notify: Restart_sshd

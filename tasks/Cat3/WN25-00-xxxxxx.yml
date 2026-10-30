@@ -1,0 +1,57 @@
+---
+
+- name: "LOW | WN25-00-000180 | AUDIT | Windows Server 2025 non-administrative accounts or groups must only have print permissions on printer shares."
+  when: wn25_00_000180 | bool
+  tags:
+    - WN25-00-000180
+    - CAT3
+    - CCI-000213
+    - SRG-OS-000080-GPOS-00048
+    - SV-278002r1181785_rule
+    - V-278002
+    - NIST800-53_AC-3
+    - NIST800-53_A_AC-3_1
+    - NIST800-53_4_AC-3
+  block:
+    - name: "LOW | WN25-00-000180 | AUDIT | Non-administrative accounts or groups must only have print permissions on printer shares. | Get Printer List"
+      ansible.windows.win_shell: Get-Printer | where Shared -eq $true | fl Name, Type
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      register: discovered_00_000180_audit
+
+    - name: "LOW | WN25-00-000180 | AUDIT | Non-administrative accounts or groups must only have print permissions on printer shares. | Warning Message."
+      when: discovered_00_000180_audit.stdout | length > 0
+      ansible.builtin.debug:
+        msg:
+          - "Warning!! This is a manual task. Windows Server 2025 non-administrative accounts or groups"
+          - "must only have print permissions on printer shares. If A Printer is showing shared please"
+          - "configure the permissions on shared printers to restrict standard users to only have Print permissions."
+          - "{{ discovered_00_000180_audit.stdout.split('\n') | trim }}"
+
+    - name: "LOW | WN25-00-000180 | AUDIT | Non-administrative accounts or groups must only have print permissions on printer shares. | Warning Count"
+      when: discovered_00_000180_audit.stdout | length > 0
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000180"
+
+- name: "LOW | WN25-00-000440 | AUDIT | The Windows Server 2025 time service must synchronize with an appropriate DoD time source."
+  when: wn25_00_000440 | bool
+  tags:
+    - WN25-00-000440
+    - CAT3
+    - CCI-004922
+    - CCI-004923
+    - SRG-OS-000355-GPOS-00143
+    - SV-278029r1182267_rule
+    - V-278029
+    - NIST800-53_4_AU-8_1_a
+  block:
+    - name: "LOW | WN25-00-000440 | AUDIT | The Windows Server 2025 time service must synchronize with an appropriate DoD time source."
+      ansible.builtin.debug:
+        msg: "Warning!! This is a manual task. The Windows Server 2025 time service must synchronize with an appropriate DoD time source. "
+
+    - name: "LOW | WN25-00-000440 | AUDIT | The Windows Server 2025 time service must synchronize with an appropriate DoD time source. | import reusable task."
+      ansible.builtin.import_tasks: warning_facts.yml
+      vars:
+        warn_control_id: "WN25-00-000440"
